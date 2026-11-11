@@ -8,10 +8,10 @@ import type { Content, OnboardingAnswers, PlayerState, Routine, Step } from '../
 
 // Catálogo pequeño con la misma forma que el del backend.
 
-function step(order: number, name: string, overrides: Partial<Step> = {}): Step {
+function step(order: number, exerciseSlug: string, name: string, overrides: Partial<Step> = {}): Step {
   return {
     order,
-    exerciseSlug: `ejercicio-${order}`,
+    exerciseSlug,
     name,
     zone: null,
     instructions: `Cómo se hace ${name}.`,
@@ -36,8 +36,8 @@ export const warmup: Routine = {
   totalSeconds: 60,
   equipment: [],
   steps: [
-    step(1, 'Marcha activa', { restSeconds: 10 }),
-    step(2, 'Estiramiento de gemelos', { durationSeconds: 20, switchSides: true }),
+    step(1, 'marcha-activa', 'Marcha activa', { restSeconds: 10 }),
+    step(2, 'estiramiento-gemelo', 'Estiramiento de gemelos', { durationSeconds: 20, switchSides: true }),
   ],
 };
 
@@ -50,7 +50,16 @@ function programRoutine(week: number): Routine {
     summary: `Sesión de la semana ${week}.`,
     totalSeconds: 60,
     equipment: ['Pelota de pádel'],
-    steps: [step(1, 'Apretón de pelota', { zone: 'ELBOW' }), step(2, 'Movilidad de muñeca', { zone: 'ELBOW' })],
+    steps: [
+      step(1, 'apreton-pelota', 'Apretón de pelota', {
+        zone: 'ELBOW',
+        equipment: 'Pelota de pádel',
+        dosage: '3 apretones por mano',
+        switchSides: true,
+      }),
+      // Un ejercicio que todavía no tiene ilustración: la app tiene que funcionar igual.
+      step(2, 'ejercicio-sin-dibujo', 'Movilidad de muñeca', { zone: 'ELBOW' }),
+    ],
   };
 }
 

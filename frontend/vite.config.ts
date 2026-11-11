@@ -38,6 +38,9 @@ export default defineConfig(({ mode }) => ({
     port: 5173,
     // En desarrollo el frontend habla con el backend de Spring Boot por el mismo origen.
     proxy: { '/api': 'http://localhost:8080' },
+    // Solo en los tests: uno de ellos lee el catálogo de ejercicios del backend
+    // (../backend) para comprobar que cada ejercicio tiene su ilustración.
+    fs: mode === 'test' ? { allow: ['..'] } : undefined,
   },
   test: {
     environment: 'jsdom',

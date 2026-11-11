@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router';
 import { RiskChip } from '../components/Bits';
 import { ZoneIcon } from '../components/Icons';
 import { DISCLAIMER, painRuleText, reviewText } from '../lib/copy';
@@ -89,6 +90,9 @@ export function Profile() {
         </p>
         <p>{DISCLAIMER}</p>
         <p>{painRuleText(content)}</p>
+        <Link className="btn btn--secondary btn--block" to="/perfil/ejercicios">
+          Ver todos los ejercicios
+        </Link>
       </section>
 
       <h2 className="section-title">Tus datos</h2>

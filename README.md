@@ -12,7 +12,7 @@ rutinas de 10 minutos para codo, hombro y rodilla.
 | Funcionalidad | Estado |
 | --- | --- |
 | Cuestionario inicial (edad, horas, nivel, molestias) y perfil de riesgo por zona | Hecho |
-| Rutina del día: calentamiento prepartido y recuperación, con temporizador y voz | Hecho (los vídeos aún no existen: el campo `video_url` está preparado) |
+| Rutina del día: calentamiento prepartido y recuperación, con temporizador y voz | Hecho. Cada ejercicio lleva una ilustración animada; los vídeos aún no existen (el campo `video_url` está preparado) |
 | Programas de 4 semanas por zona con progresión de carga | Hecho: codo, hombro y rodilla |
 | Registro de dolor en un toque (0 a 10) y aviso de "para y consulta" | Hecho |
 | Recordatorio 30 minutos antes del partido | Parcial: solo llega con la app abierta (ver [guía móvil](docs/movil-y-siguientes-pasos.md)) |
@@ -53,7 +53,7 @@ bórrala para empezar de cero.
 
 ```bash
 cd backend && ./mvnw test      # 31 tests: riesgo, avisos de dolor, contenido y API completa
-cd frontend && npm test        # 75 tests: reproductor, sincronización offline y pantallas
+cd frontend && npm test        # 256 tests: reproductor, sincronización offline, ilustraciones y pantallas
 cd frontend && npm run build   # comprobación de tipos + build de producción (PWA)
 ```
 
@@ -74,10 +74,29 @@ backend/src/main/resources/db/migration/
   V2__seed_content.sql    contenido inicial (borrador)
 
 frontend/src/
-  lib/        api, store offline (cola de envíos), reproductor, voz, recordatorio
-  screens/    Onboarding, Home, RoutineScreen, Programs, ProgramDetail, Pain, Profile
-  components/ mascota, iconos, escala de dolor, anillo de cuenta atrás
+  lib/            api, store offline (cola de envíos), reproductor, voz, recordatorio
+  screens/        Onboarding, Home, RoutineScreen, Programs, ProgramDetail, Pain, Profile, Exercises
+  components/     mascota, iconos, escala de dolor, anillo de cuenta atrás, ficha de ejercicio
+  illustrations/  figura articulada que dibuja y anima cada ejercicio
 ```
+
+## Ilustraciones de los ejercicios
+
+Cada ejercicio se enseña con una figura esquemática animada: en el reproductor, en la lista
+de cada rutina (miniatura), en la ficha "cómo se hace" y en la galería (Perfil → Ver todos
+los ejercicios). No son imágenes: cada ejercicio se describe con unas pocas posturas clave en
+[frontend/src/illustrations/catalog.ts](frontend/src/illustrations/catalog.ts) y el motor
+([engine.ts](frontend/src/illustrations/engine.ts)) calcula el movimiento. Pesan poco y
+funcionan sin cobertura.
+
+- Están dibujadas a partir del texto de cada ejercicio y, como el resto del contenido, las
+  tiene que revisar el fisioterapeuta.
+- Cuando un ejercicio tenga `video_url`, la app enseña el vídeo en lugar del dibujo.
+- Para añadir o corregir una: edita sus posturas en `catalog.ts` y míralas en
+  <http://localhost:5173/dev/ilustraciones> (solo existe en desarrollo; admite `?animadas`,
+  `?grande` y `?solo=texto`).
+- Un test comprueba que todos los ejercicios del backend tienen ilustración, que ninguna se
+  sale del lienzo y que el movimiento no da saltos.
 
 ## API
 

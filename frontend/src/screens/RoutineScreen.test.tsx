@@ -28,7 +28,36 @@ describe('pantalla de rutina', () => {
     expect(screen.getByText(/Pelota de pádel/)).toBeInTheDocument();
   });
 
-  it('al empezar muestra la cuenta atrás y el primer ejercicio', async () => {
+  it('cada ejercicio lleva su miniatura, o su número si aún no tiene dibujo', async () => {
+    renderRoutine(await registeredStore(fakeApi()), 'codo-semana-1');
+
+    const illustrated = screen.getByRole('button', { name: /Apretón de pelota/ });
+    const plain = screen.getByRole('button', { name: /Movilidad de muñeca/ });
+
+    expect(illustrated.querySelector('svg.figure')).toBeInTheDocument();
+    expect(plain.querySelector('svg.figure')).not.toBeInTheDocument();
+    expect(plain).toHaveTextContent(/^2/);
+  });
+
+  it('tocar un ejercicio abre su ficha con el dibujo en movimiento y la explicación', async () => {
+    const user = userEvent.setup();
+    renderRoutine(await registeredStore(fakeApi()), 'codo-semana-1');
+
+    await user.click(screen.getByRole('button', { name: /Apretón de pelota/ }));
+    const sheet = screen.getByRole('dialog', { name: 'Apretón de pelota' });
+
+    expect(within(sheet).getByRole('img', { name: 'Ilustración: Apretón de pelota' })).toBeInTheDocument();
+    expect(sheet.querySelector('animate')).toBeInTheDocument();
+    expect(within(sheet).getByText('Cómo se hace Apretón de pelota.')).toBeInTheDocument();
+    expect(within(sheet).getByText('3 apretones por mano')).toBeInTheDocument();
+    expect(within(sheet).getByText('Cambia de lado a mitad')).toBeInTheDocument();
+    expect(sheet).toHaveTextContent('Necesitas: Pelota de pádel');
+
+    await user.click(within(sheet).getByRole('button', { name: 'Cerrar' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('al empezar muestra la cuenta atrás y el primer ejercicio con su ilustración', async () => {
     const user = userEvent.setup();
     renderRoutine(await registeredStore(fakeApi()), 'calentamiento-prepartido');
 
@@ -37,6 +66,22 @@ describe('pantalla de rutina', () => {
     expect(screen.getByText('Prepárate')).toBeInTheDocument();
     expect(screen.getByRole('timer')).toHaveTextContent('5');
     expect(screen.getByRole('heading', { name: 'Marcha activa' })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'Ilustración: Marcha activa' })).toBeInTheDocument();
+  });
+
+  it('un ejercicio sin ilustración se reproduce igual, solo con el reloj y el texto', async () => {
+    const user = userEvent.setup();
+    renderRoutine(await registeredStore(fakeApi()), 'codo-semana-1');
+
+    await user.click(screen.getByRole('button', { name: 'Empezar' }));
+    const skip = screen.getByRole('button', { name: 'Saltar al siguiente ejercicio' });
+    await user.click(skip);
+    expect(screen.getByRole('img', { name: 'Ilustración: Apretón de pelota' })).toBeInTheDocument();
+
+    await user.click(skip);
+    expect(screen.getByRole('heading', { name: 'Movilidad de muñeca' })).toBeInTheDocument();
+    expect(screen.queryByRole('img')).not.toBeInTheDocument();
+    expect(screen.getByText('Cómo se hace Movilidad de muñeca.')).toBeInTheDocument();
   });
 
   it('al llegar al final guarda la rutina y pregunta por la zona trabajada', async () => {

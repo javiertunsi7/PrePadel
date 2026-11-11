@@ -58,11 +58,15 @@ El backend no cambiaría: la API ya está separada.
 
 ## 2. Qué falta para publicar, por orden
 
-1. **Contenido validado.** Un fisioterapeuta revisa ejercicios, dosis y los umbrales de la
-   regla de dolor (`prepadel.pain.*`) y de riesgo (`RiskProfileService`). Después se rellena
-   la tabla `content_review` con su nombre y la app lo muestra. Sin esto no se publica.
-2. **Vídeos.** Grabarlos con el fisio y subirlos a Cloudflare Stream o Mux; basta con
-   rellenar `exercise.video_url` y el reproductor los enseña.
+1. **Contenido validado.** Un fisioterapeuta revisa ejercicios, dosis, ilustraciones y los
+   umbrales de la regla de dolor (`prepadel.pain.*`) y de riesgo (`RiskProfileService`).
+   La galería de la app (Perfil → Ver todos los ejercicios) le enseña cada ejercicio con su
+   dibujo y su texto. Después se rellena la tabla `content_review` con su nombre y la app lo
+   muestra. Sin esto no se publica.
+2. **Vídeos.** Hoy cada ejercicio se enseña con una ilustración esquemática animada, que
+   sirve para lanzar la validación con clubes. Los vídeos con el fisio siguen siendo lo que
+   da credibilidad: se graban, se suben a Cloudflare Stream o Mux y basta con rellenar
+   `exercise.video_url` para que sustituyan al dibujo en el reproductor y en la ficha.
 3. **Producción.** Hoy la base de datos es un fichero H2 pensado para desarrollo. Falta:
    PostgreSQL (driver, módulo de Flyway para PostgreSQL y un perfil `prod`), servir el
    frontend y la API bajo el mismo dominio con HTTPS, y copias de seguridad. El SQL de las

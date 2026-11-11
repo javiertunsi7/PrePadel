@@ -993,10 +993,6 @@ input {
 }
 
 .steps li {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 0;
   border-bottom: 2px solid var(--hairline);
 }
 
@@ -1004,21 +1000,36 @@ input {
   border-bottom: none;
 }
 
-.steps li > .muted {
+/* Cada ejercicio de la rutina: miniatura, nombre y duración. Al tocarlo se abre su ficha. */
+.step-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 0;
+  text-align: left;
+  cursor: pointer;
+  background: none;
+  border: none;
+}
+
+.step-row > .muted {
   flex: none;
   font-size: 0.9rem;
 }
 
-.steps__n {
+.thumb {
   display: grid;
   flex: none;
   place-items: center;
-  width: 32px;
-  height: 32px;
-  font: 600 0.95rem var(--font-display);
-  background: var(--zone);
+  width: 58px;
+  height: 58px;
+  padding: 2px;
+  overflow: hidden;
+  font: 600 1rem var(--font-display);
+  background: var(--paper);
   border: 2px solid var(--ink);
-  border-radius: 50%;
+  border-radius: 14px;
 }
 
 .steps--compact {
@@ -1028,9 +1039,81 @@ input {
 }
 
 .steps--compact li {
+  display: flex;
+  align-items: center;
   justify-content: space-between;
+  gap: 12px;
   padding: 8px 0;
   border-bottom-color: rgb(34 48 74 / 0.12);
+}
+
+.steps--compact li > .muted {
+  flex: none;
+  font-size: 0.9rem;
+}
+
+/* Ficha "cómo se hace" */
+.exercise-sheet {
+  position: relative;
+  max-height: calc(100dvh - 36px);
+  overflow-y: auto;
+}
+
+.exercise-sheet__close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 1;
+}
+
+.exercise-sheet__media {
+  flex: none;
+  height: min(44dvh, 300px);
+}
+
+.media-video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 16px;
+}
+
+/* Galería de ejercicios */
+.exercise-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.exercise-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 10px;
+  text-align: center;
+  cursor: pointer;
+  background: var(--paper);
+  border: var(--border);
+  border-radius: 20px;
+  box-shadow: var(--shadow);
+}
+
+.exercise-tile:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 var(--ink);
+}
+
+.exercise-tile .thumb {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 120 / 118;
+  border: none;
+}
+
+.exercise-tile strong {
+  font: 600 0.95rem/1.2 var(--font-display);
 }
 
 /* -------------------------------------------- Reproductor (manos libres) */
@@ -1152,12 +1235,63 @@ input {
   margin: 0;
 }
 
-.player__video {
+/* Con ilustración o vídeo, la pantalla se reparte: arriba cómo se hace y abajo
+   el reloj, más pequeño pero todavía legible de lejos. */
+.player--media {
+  height: 100dvh;
+  min-height: 600px;
+}
+
+.player__media {
+  flex: 1 1 0;
   width: 100%;
-  max-height: 200px;
-  object-fit: cover;
+  max-width: 340px;
+  min-height: 120px;
+  max-height: 320px;
+  padding: 4px 8px;
+  background: var(--paper);
   border: var(--border);
-  border-radius: 20px;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.player--media .player__label {
+  margin: 12px 0 10px;
+}
+
+.player--media .player__info {
+  flex: none;
+  gap: 6px;
+  margin-top: 14px;
+}
+
+.player--media .player__info h1 {
+  font-size: 1.35rem;
+}
+
+.player--media .player__how {
+  display: none;
+}
+
+.player--media .ring {
+  width: clamp(112px, 21dvh, 180px);
+  margin-top: 10px;
+}
+
+.player--media .player__seconds {
+  font-size: clamp(2.7rem, 8.4dvh, 4.6rem);
+}
+
+.player--media .player__controls {
+  margin-top: 12px;
+}
+
+/* En móviles altos cabe también la explicación escrita. */
+@media (min-height: 800px) {
+  .player--media .player__how {
+    display: block;
+    font-size: 0.95rem;
+  }
 }
 
 .player__controls {
@@ -1258,6 +1392,241 @@ input {
 .facts dd {
   margin: 2px 0 0;
   font: 600 1.12rem var(--font-display);
+}
+
+/* --------------------------------------------- Ilustraciones de ejercicios */
+
+/* Figura articulada (src/illustrations). Miembros en tinta, camiseta del color
+   de la zona y un punto que marca la articulación que trabaja. */
+.figure {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.figure path,
+.figure circle {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.fig-near {
+  stroke: var(--ink);
+}
+
+.fig-far {
+  stroke: #9aa5ba;
+}
+
+.fig-leg {
+  stroke-width: 6.2;
+}
+
+.fig-arm {
+  stroke-width: 5.2;
+}
+
+.fig-hand {
+  stroke-width: 4.6;
+}
+
+.fig-halo {
+  stroke: var(--paper);
+  stroke-width: 8;
+}
+
+.figure .fig-fist {
+  stroke: none;
+}
+
+.figure .fig-fist.fig-near {
+  fill: var(--ink);
+}
+
+.figure .fig-fist.fig-far {
+  fill: #9aa5ba;
+}
+
+.fig-neck {
+  stroke: var(--ink);
+  stroke-width: 4.4;
+}
+
+.figure .fig-torso {
+  fill: var(--zone);
+  stroke: var(--ink);
+  stroke-width: 2.6;
+}
+
+.figure .fig-head {
+  fill: var(--paper);
+  stroke: var(--ink);
+  stroke-width: 2.6;
+}
+
+.fig-headband {
+  stroke: var(--coral);
+  stroke-width: 3;
+}
+
+.figure .fig-focus {
+  fill: var(--zone-strong);
+  stroke: var(--paper);
+  stroke-width: 1.6;
+}
+
+.fig-ground {
+  stroke: rgb(34 48 74 / 0.28);
+  stroke-width: 2.4;
+}
+
+.figure .fig-wall {
+  fill: #eadbc3;
+  stroke: none;
+}
+
+.fig-furniture {
+  stroke: var(--ink);
+  stroke-width: 2.8;
+}
+
+.fig-furniture--seat {
+  stroke-width: 4.4;
+}
+
+.figure .fig-box {
+  fill: var(--paper);
+  stroke: var(--ink);
+  stroke-width: 2.4;
+}
+
+.fig-mat {
+  stroke: var(--zone-strong);
+  stroke-width: 3.6;
+  opacity: 0.5;
+}
+
+.fig-elastic {
+  stroke: var(--coral);
+  stroke-width: 2.6;
+}
+
+.fig-handle {
+  stroke: var(--ink);
+  stroke-width: 3.2;
+}
+
+.figure .fig-racket {
+  fill: var(--coral);
+  stroke: var(--ink);
+  stroke-width: 2.2;
+}
+
+.figure .fig-ball {
+  fill: var(--ball);
+  stroke: var(--ink);
+  stroke-width: 2.2;
+}
+
+.fig-arrow,
+.fig-arrowhead {
+  stroke: var(--ink-soft);
+  stroke-width: 2;
+}
+
+.figure .fig-note {
+  font: 800 6.6px var(--font-body);
+  fill: var(--ink-soft);
+}
+
+/* Primer plano del antebrazo (ejercicios de muñeca) */
+.fig-support {
+  stroke: #dfe4ee;
+  stroke-width: 24;
+}
+
+.fig-limb {
+  stroke-width: 14;
+}
+
+.fig-mitt-edge {
+  stroke: var(--ink);
+  stroke-width: 13.5;
+}
+
+.fig-mitt {
+  stroke: var(--paper);
+  stroke-width: 8.6;
+}
+
+.fig-fingers {
+  stroke: var(--ink);
+  stroke-width: 5.4;
+}
+
+.fig-bottle-edge {
+  stroke: var(--ink);
+  stroke-width: 12.5;
+}
+
+.fig-bottle {
+  stroke: #a9d8ff;
+  stroke-width: 8.5;
+}
+
+.fig-bottle-cap {
+  stroke: var(--ink);
+  stroke-width: 7;
+}
+
+/* Hoja de revisión de ilustraciones (solo en desarrollo) */
+.dev-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  overflow: auto;
+  padding: 8px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 6px;
+  align-content: start;
+  background: var(--cream);
+}
+
+.dev-sheet--big {
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+}
+
+.dev-sheet__cell {
+  margin: 0;
+  padding: 2px 4px 4px;
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  background: var(--paper);
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+}
+
+.dev-sheet__cell--live {
+  border: 2px solid var(--coral);
+}
+
+.dev-sheet__cell figcaption {
+  order: -1;
+  overflow: hidden;
+  font-size: 0.66rem;
+  font-weight: 800;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.dev-sheet__cell .figure {
+  flex: 1;
+  min-height: 0;
 }
 
 @media (prefers-reduced-motion: reduce) {

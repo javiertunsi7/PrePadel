@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router';
 import { SessionDots } from '../components/Bits';
+import { ExerciseMedia, ExerciseSheet, ExerciseThumb, hasMedia } from '../components/ExerciseSheet';
 import {
   BackIcon,
   CheckIcon,
@@ -30,7 +31,7 @@ import {
   type Playback,
 } from '../lib/player';
 import { useAppState, useStore } from '../lib/store';
-import type { Routine } from '../lib/types';
+import type { Routine, Step } from '../lib/types';
 import { beep, hush, say, unlockAudio } from '../lib/voice';
 import { zoneVars } from '../lib/zones';
 
@@ -151,8 +152,13 @@ function RoutineRunner({ routine }: { routine: Routine }) {
         ? 'Descansa'
         : `Ejercicio ${playback.stepIndex + 1} de ${routine.steps.length}`;
 
+  const withMedia = hasMedia(step);
+
   return (
-    <main className={`player player--${playback.phase}`} style={zoneVars(step.zone)}>
+    <main
+      className={`player player--${playback.phase}${withMedia ? ' player--media' : ''}`}
+      style={zoneVars(step.zone)}
+    >
       <header className="player__top">
         <button
           className="icon-btn"
@@ -180,19 +186,26 @@ function RoutineRunner({ routine }: { routine: Routine }) {
       </header>
 
       <p className="player__label">{playback.paused ? 'En pausa' : label}</p>
-      <Ring progress={phaseProgress(playback, routine)}>
-        <span className="player__seconds" role="timer" aria-label={`Quedan ${seconds} segundos`}>
-          {formatClock(seconds)}
-        </span>
-      </Ring>
+
+      {/* Cómo se hace: el vídeo si existe y, si no, la figura en movimiento. */}
+      {withMedia && (
+        <div className="player__media">
+          <ExerciseMedia exercise={step} paused={playback.paused} />
+        </div>
+      )}
 
       <div className="player__info">
         {playback.phase !== 'work' && <span className="eyebrow">Siguiente</span>}
         <h1>{step.name}</h1>
         {step.dosage && <p className="player__dosage">{step.dosage}</p>}
         <p className="player__how">{step.instructions}</p>
-        {step.videoUrl && <video className="player__video" src={step.videoUrl} muted loop playsInline autoPlay />}
       </div>
+
+      <Ring progress={phaseProgress(playback, routine)}>
+        <span className="player__seconds" role="timer" aria-label={`Quedan ${seconds} segundos`}>
+          {formatClock(seconds)}
+        </span>
+      </Ring>
 
       <footer className="player__controls">
         <button
@@ -255,6 +268,8 @@ function Overview({
   onBack: () => void;
   onStart: () => void;
 }) {
+  const [opened, setOpened] = useState<Step | null>(null);
+
   return (
     <main className="screen detail" style={zoneVars(routine.zone)}>
       <button className="back-link" onClick={onBack}>
@@ -288,12 +303,14 @@ function Overview({
       <ol className="card steps">
         {routine.steps.map((step) => (
           <li key={step.order}>
-            <span className="steps__n">{step.order}</span>
-            <span className="row__text">
-              <strong>{step.name}</strong>
-              {step.dosage && <span className="muted">{step.dosage}</span>}
-            </span>
-            <span className="muted">{formatSeconds(step.durationSeconds)}</span>
+            <button className="step-row" onClick={() => setOpened(step)}>
+              <ExerciseThumb exercise={step} fallback={step.order} />
+              <span className="row__text">
+                <strong>{step.name}</strong>
+                {step.dosage && <span className="muted">{step.dosage}</span>}
+              </span>
+              <span className="muted">{formatSeconds(step.durationSeconds)}</span>
+            </button>
           </li>
         ))}
       </ol>
@@ -305,6 +322,14 @@ function Overview({
           <PlayIcon /> Empezar
         </button>
       </div>
+
+      {opened && (
+        <ExerciseSheet
+          exercise={opened}
+          dose={{ seconds: opened.durationSeconds, dosage: opened.dosage }}
+          onClose={() => setOpened(null)}
+        />
+      )}
     </main>
   );
 }

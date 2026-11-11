@@ -1,8 +1,10 @@
+import { lazy, Suspense } from 'react';
 import { Navigate, Outlet, Route, Routes, useLocation } from 'react-router';
 import { Mascot } from './components/Mascot';
 import { TabBar } from './components/TabBar';
 import { useMatchReminder, useScrollToTop } from './lib/hooks';
 import { useAppState, useStore } from './lib/store';
+import { Exercises } from './screens/Exercises';
 import { Home } from './screens/Home';
 import { Onboarding } from './screens/Onboarding';
 import { Pain } from './screens/Pain';
@@ -11,10 +13,23 @@ import { ProgramDetail } from './screens/ProgramDetail';
 import { Programs } from './screens/Programs';
 import { RoutineScreen } from './screens/RoutineScreen';
 
+/** Hoja para revisar todas las ilustraciones; no entra en la versión de producción. */
+const DevSheet = import.meta.env.DEV ? lazy(() => import('./illustrations/DevSheet')) : null;
+
 export function App() {
   useScrollToTop(useLocation().pathname);
   return (
     <Routes>
+      {DevSheet && (
+        <Route
+          path="/dev/ilustraciones"
+          element={
+            <Suspense fallback={null}>
+              <DevSheet />
+            </Suspense>
+          }
+        />
+      )}
       <Route path="/bienvenida" element={<Onboarding />} />
       <Route element={<RequirePlayer />}>
         <Route element={<Shell />}>
@@ -23,6 +38,7 @@ export function App() {
           <Route path="programas/:slug" element={<ProgramDetail />} />
           <Route path="dolor" element={<Pain />} />
           <Route path="perfil" element={<Profile />} />
+          <Route path="perfil/ejercicios" element={<Exercises />} />
         </Route>
         {/* La rutina va a pantalla completa, sin barra de pestañas. */}
         <Route path="rutina/:slug" element={<RoutineScreen />} />
