@@ -153,6 +153,67 @@ class MatchReminderTest {
 	}
 
 	@Test
+	void aWeeklyMatchIsRemindedAgainTheNextWeekAtTheSameClockTime() throws Exception {
+		String token = register();
+		// Domingo 25 de octubre de 2026 a las 19:00 en Madrid: esa madrugada se cambia al horario de invierno.
+		Instant before = java.time.ZonedDateTime.of(2026, 10, 18, 19, 0, 0, 0, java.time.ZoneId.of("Europe/Madrid"))
+			.toInstant();
+		repository.deleteAll();
+		mvc.perform(post("/api/me/reminder").header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+			.contentType(MediaType.APPLICATION_JSON)
+			.content("""
+					{"matchAt": "%s", "weekly": true, "timeZone": "Europe/Madrid",
+					 "subscription": {"endpoint": "%s",
+					 "p256dh": "BCVxsr7N_eNgVRqvHtD0zTZsEc6-VV-JvLexhqUzORcxaOzi6-AYWXvTBHm4bjyPjs7Vd8pZGH6SRpkNtoIAiw4",
+					 "auth": "BTBZMqHH6r4Tts7J_aSIgg"}}
+					""".formatted(Instant.now().plus(Duration.ofMinutes(20)), ENDPOINT + "semanal")))
+			.andExpect(status().isOk());
+		assertThat(service.sendDue()).isEqualTo(1);
+
+		MatchReminder reminder = repository.findAll().getFirst();
+		reminder.schedule(reminder.getEndpoint(), reminder.getP256dh(), reminder.getAuth(), before, true,
+				java.time.ZoneId.of("Europe/Madrid"));
+		reminder.markSent(before.minus(Duration.ofMinutes(30)));
+		reminder.rollToNextWeekAfter(before.plus(Duration.ofMinutes(1)));
+
+		assertThat(reminder.getMatchAt().atZone(java.time.ZoneId.of("Europe/Madrid")))
+			.isEqualTo(java.time.ZonedDateTime.of(2026, 10, 25, 19, 0, 0, 0, java.time.ZoneId.of("Europe/Madrid")));
+		assertThat(reminder.getSentAt()).isNull();
+
+		// Pasado el partido, el servidor lo mueve a la semana siguiente en vez de borrarlo.
+		repository.deleteAll();
+		remind(token, Instant.now().plus(Duration.ofMinutes(10)), ENDPOINT + "x").andExpect(status().isOk());
+		mvc.perform(post("/api/me/reminder").header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+			.contentType(MediaType.APPLICATION_JSON)
+			.content("{\"matchAt\": \"%s\", \"weekly\": true, \"timeZone\": \"Narnia/Capital\", \"subscription\": %s}"
+				.formatted(Instant.now().plus(Duration.ofMinutes(10)),
+						"{\"endpoint\": \"" + ENDPOINT + "x\", \"p256dh\": \"a\", \"auth\": \"b\"}")))
+			.andExpect(status().isBadRequest());
+	}
+
+	@Test
+	void aWeeklyMatchThatAlreadyStartedMovesToNextWeekInsteadOfBeingDeleted() throws Exception {
+		String token = register();
+		mvc.perform(post("/api/me/reminder").header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+			.contentType(MediaType.APPLICATION_JSON)
+			.content("""
+					{"matchAt": "%s", "weekly": true, "timeZone": "Europe/Madrid",
+					 "subscription": {"endpoint": "%s",
+					 "p256dh": "BCVxsr7N_eNgVRqvHtD0zTZsEc6-VV-JvLexhqUzORcxaOzi6-AYWXvTBHm4bjyPjs7Vd8pZGH6SRpkNtoIAiw4",
+					 "auth": "BTBZMqHH6r4Tts7J_aSIgg"}}
+					""".formatted(Instant.now().minus(Duration.ofDays(2)), ENDPOINT + "semanal")))
+			.andExpect(status().isOk());
+
+		service.sendDue();
+
+		MatchReminder reminder = repository.findAll().getFirst();
+		assertThat(reminder.isWeekly()).isTrue();
+		assertThat(reminder.getMatchAt()).isBetween(Instant.now().plus(Duration.ofDays(4)),
+				Instant.now().plus(Duration.ofDays(5)));
+		assertThat(reminder.getSentAt()).isNull();
+	}
+
+	@Test
 	void onlyKnownPushServicesAreAccepted() throws Exception {
 		String token = register();
 		Instant match = Instant.now().plus(Duration.ofMinutes(20));

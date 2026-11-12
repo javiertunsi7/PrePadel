@@ -12,7 +12,14 @@ export type Mutation =
   | { kind: 'enroll'; id: string; programSlug: string }
   // Salir de una rutina a medias: no cambia nada en la app, solo cuenta para saber dónde se abandona.
   // Hora del partido para el aviso con la app cerrada; sin hora, se cancela.
-  | { kind: 'reminder'; id: string; matchAt: string | null; subscription: PushTarget | null }
+  | {
+      kind: 'reminder';
+      id: string;
+      matchAt: string | null;
+      subscription: PushTarget | null;
+      weekly: boolean;
+      timeZone: string | null;
+    }
   | { kind: 'abandonment'; id: string; routineSlug: string; exerciseSlug: string; abandonedAt: string };
 
 export function toRequest(mutation: Mutation): { path: string; body: unknown } {
@@ -36,7 +43,15 @@ export function toRequest(mutation: Mutation): { path: string; body: unknown } {
     case 'enroll':
       return { path: '/me/enrollment', body: { programSlug: mutation.programSlug } };
     case 'reminder':
-      return { path: '/me/reminder', body: { matchAt: mutation.matchAt, subscription: mutation.subscription } };
+      return {
+        path: '/me/reminder',
+        body: {
+          matchAt: mutation.matchAt,
+          subscription: mutation.subscription,
+          weekly: mutation.weekly ?? false,
+          timeZone: mutation.timeZone ?? null,
+        },
+      };
     case 'abandonment':
       return {
         path: '/me/abandonments',

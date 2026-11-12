@@ -30,8 +30,12 @@ public class StaticWebConfig implements WebMvcConfigurer {
 
 		// El resto (index.html, service worker, manifiesto, iconos) se revalida siempre:
 		// así una versión nueva de la app llega en la siguiente visita.
+		// Sin Last-Modified: dentro del jar todos los ficheros tienen la misma fecha fija
+		// (1980), así que el servidor contestaría "no ha cambiado" (304) aunque la web sea
+		// nueva y el móvil se quedaría con la versión vieja. Son ficheros de 1 o 2 kB.
 		registry.addResourceHandler("/**")
 			.addResourceLocations(WEB)
+			.setUseLastModified(false)
 			.setCacheControl(CacheControl.noCache())
 			.resourceChain(true)
 			.addResolver(new AppRouteResolver());

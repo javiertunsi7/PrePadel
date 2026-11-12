@@ -1,5 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { matchMoment, msUntilReminder, nextOccurrence, pushSubscription, reminderTime } from './reminder';
+import {
+  matchMoment,
+  msUntilReminder,
+  nextOccurrence,
+  nextWeeklyMatch,
+  pushSubscription,
+  reminderTime,
+} from './reminder';
 
 const at = (hours: number, minutes: number, day = 10) => new Date(2026, 10, day, hours, minutes);
 
@@ -72,5 +79,19 @@ describe('suscripción a los avisos con la app cerrada', () => {
 
     vi.unstubAllGlobals();
     await expect(pushSubscription('AQID')).resolves.toBeNull();
+  });
+});
+
+describe('partido semanal', () => {
+  it('pasado el partido, el siguiente es el mismo día y hora de la semana que viene', () => {
+    expect(nextWeeklyMatch(at(19, 0, 10), at(23, 0, 10))).toEqual(at(19, 0, 17));
+  });
+
+  it('mientras toca recuperar sigue siendo el de hoy', () => {
+    expect(nextWeeklyMatch(at(19, 0, 10), at(20, 0, 10))).toEqual(at(19, 0, 10));
+  });
+
+  it('si la app lleva semanas sin abrirse, salta hasta el próximo que no haya pasado', () => {
+    expect(nextWeeklyMatch(at(19, 0, 1), at(12, 0, 20))).toEqual(at(19, 0, 22));
   });
 });

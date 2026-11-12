@@ -117,6 +117,7 @@ export function fakeApi(overrides: Partial<Api> = {}): Api {
     register: vi.fn(async () => ({ token: 'token-de-prueba', state: playerState() })),
     me: vi.fn(async () => playerState()),
     deleteMe: vi.fn(async () => undefined),
+    exportMe: vi.fn(async () => ({ profile: { age: 47 }, pain: [] })),
     send: vi.fn(async () => playerState()),
     ...overrides,
   };

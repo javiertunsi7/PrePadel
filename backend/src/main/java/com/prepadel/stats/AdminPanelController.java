@@ -1,24 +1,20 @@
 package com.prepadel.stats;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.Base64;
 
 import com.prepadel.stats.RetentionStats.AbandonedExercise;
+import com.prepadel.web.PasswordGate;
 
 import jakarta.servlet.http.HttpServletResponse;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.util.HtmlUtils;
 
 /**
@@ -36,12 +32,12 @@ public class AdminPanelController {
 		.withZone(ZoneId.of("Europe/Madrid"));
 
 	private final RetentionStatsService statsService;
-	private final byte[] password;
+	private final PasswordGate gate;
 
 	public AdminPanelController(RetentionStatsService statsService,
 			@Value("${prepadel.admin.password:}") String password) {
 		this.statsService = statsService;
-		this.password = password.getBytes(StandardCharsets.UTF_8);
+		this.gate = new PasswordGate(password, true);
 	}
 
 	@GetMapping("/stats")
@@ -59,29 +55,7 @@ public class AdminPanelController {
 	}
 
 	private void authorize(String authorization, HttpServletResponse response) {
-		if (password.length == 0) {
-			throw new ResponseStatusException(HttpStatus.NOT_FOUND);
-		}
-		response.setHeader(HttpHeaders.CACHE_CONTROL, "no-store");
-		if (!MessageDigest.isEqual(password, passwordFrom(authorization))) {
-			response.setHeader(HttpHeaders.WWW_AUTHENTICATE, "Basic realm=\"PrePadel\", charset=\"UTF-8\"");
-			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
-		}
-	}
-
-	/** Cabecera "Basic base64(usuario:contraseña)". Devuelve la contraseña, o vacío si no viene bien formada. */
-	private static byte[] passwordFrom(String authorization) {
-		if (authorization == null || !authorization.regionMatches(true, 0, "Basic ", 0, 6)) {
-			return new byte[0];
-		}
-		try {
-			String credentials = new String(Base64.getDecoder().decode(authorization.substring(6).trim()),
-					StandardCharsets.UTF_8);
-			int colon = credentials.indexOf(':');
-			return colon < 0 ? new byte[0] : credentials.substring(colon + 1).getBytes(StandardCharsets.UTF_8);
-		} catch (IllegalArgumentException notBase64) {
-			return new byte[0];
-		}
+		gate.check(authorization, response);
 	}
 
 	private static String html(RetentionStats stats) {

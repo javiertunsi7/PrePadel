@@ -41,10 +41,10 @@
 | **Finalidad** | Avisar al jugador 30 minutos antes de su partido para que caliente |
 | **Base legal** | Consentimiento: el permiso de notificaciones que el jugador concede en su navegador (art. 6.1.a) [confirmar] |
 | **Interesados** | Jugadores que marcan la hora del partido y aceptan las notificaciones |
-| **Datos** | Hora del partido; dirección de notificaciones del móvil (endpoint) y sus claves de cifrado |
+| **Datos** | Hora del partido; si se repite cada semana y la zona horaria del móvil; dirección de notificaciones del móvil (endpoint) y sus claves de cifrado |
 | **Destinatarios** | Proveedor de alojamiento. Servicio de notificaciones del navegador del jugador (Google, Apple o Mozilla), que recibe la dirección y un mensaje cifrado sin datos personales ni de salud |
 | **Transferencias internacionales** | Posibles, a través de esos servicios [revisar con el abogado] |
-| **Conservación** | Hasta 24 horas después del partido; antes si el jugador quita el partido o borra su cuenta |
+| **Conservación** | Hasta 24 horas después del partido; el semanal, hasta que el jugador deja de pedir el aviso. Siempre se borra al borrar la cuenta |
 | **Dónde está** | Tabla `match_reminder` |
 
 ## 4. Seguridad del servicio

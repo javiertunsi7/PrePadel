@@ -2,7 +2,9 @@ package com.prepadel.reminder;
 
 import java.time.Clock;
 import java.time.Duration;
+import java.time.DateTimeException;
 import java.time.Instant;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.UUID;
 
@@ -23,6 +25,8 @@ public class ReminderService {
 
 	/** Nadie marca un partido a más de una semana vista: la app solo pregunta la hora de hoy o mañana. */
 	private static final Duration MAX_AHEAD = Duration.ofDays(7);
+
+	private static final ZoneId DEFAULT_ZONE = ZoneId.of("Europe/Madrid");
 
 	private final MatchReminderRepository repository;
 	private final PushGateway gateway;
@@ -48,12 +52,14 @@ public class ReminderService {
 		if (request.matchAt().isAfter(clock.instant().plus(MAX_AHEAD))) {
 			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El partido queda demasiado lejos");
 		}
+		boolean weekly = Boolean.TRUE.equals(request.weekly());
+		ZoneId zone = zoneOf(request.timeZone());
 		repository.findById(playerId)
 			.ifPresentOrElse(
 					existing -> existing.schedule(subscription.endpoint(), subscription.p256dh(), subscription.auth(),
-							request.matchAt()),
+							request.matchAt(), weekly, zone),
 					() -> repository.save(new MatchReminder(playerId, subscription.endpoint(), subscription.p256dh(),
-							subscription.auth(), request.matchAt())));
+							subscription.auth(), request.matchAt(), weekly, zone)));
 	}
 
 	@Transactional
@@ -68,7 +74,8 @@ public class ReminderService {
 	@Transactional
 	public int sendDue() {
 		Instant now = clock.instant();
-		repository.deleteByMatchAtLessThan(now.minus(KEEP_AFTER_MATCH));
+		repository.findByWeeklyTrueAndMatchAtLessThanEqual(now).forEach(reminder -> reminder.rollToNextWeekAfter(now));
+		repository.deleteByWeeklyFalseAndMatchAtLessThan(now.minus(KEEP_AFTER_MATCH));
 
 		List<MatchReminder> due = repository.findBySentAtIsNullAndMatchAtGreaterThanAndMatchAtLessThanEqual(now,
 				now.plus(LEAD));
@@ -85,6 +92,17 @@ public class ReminderService {
 			}
 		}
 		return delivered;
+	}
+
+	private static ZoneId zoneOf(String timeZone) {
+		if (timeZone == null || timeZone.isBlank()) {
+			return DEFAULT_ZONE;
+		}
+		try {
+			return ZoneId.of(timeZone);
+		} catch (DateTimeException unknown) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Zona horaria desconocida: " + timeZone);
+		}
 	}
 
 	/** Lo que el móvil enseña. Sin datos del jugador: solo que toca calentar. */

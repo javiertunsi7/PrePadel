@@ -34,6 +34,8 @@ services:
       DATABASE_PASSWORD: prepadel-local
       # Panel de retención en /api/admin/panel; vacío = no existe.
       PREPADEL_ADMIN_PASSWORD: ${PREPADEL_ADMIN_PASSWORD:-}
+      # Pantalla /revision del fisio; vacía = no existe.
+      PREPADEL_REVIEW_PASSWORD: ${PREPADEL_REVIEW_PASSWORD:-}
       # Aviso del partido con la app cerrada; vacías = solo avisa con la app abierta.
       PREPADEL_PUSH_PUBLIC_KEY: ${PREPADEL_PUSH_PUBLIC_KEY:-}
       PREPADEL_PUSH_PRIVATE_KEY: ${PREPADEL_PUSH_PRIVATE_KEY:-}

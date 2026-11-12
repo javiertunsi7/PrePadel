@@ -6,6 +6,8 @@ import type { PushTarget } from './types';
 export const LEAD_MINUTES = 30;
 /** Tras la hora de inicio, la app pregunta por el partido durante este tiempo. */
 const MATCH_WINDOW_HOURS = 3;
+/** A partir de aquí el partido se da por pasado. */
+export const MATCH_OVER_MS = MATCH_WINDOW_HOURS * 3_600_000;
 
 /** Próxima vez que el reloj marca esa hora ("19:00"): hoy si aún no ha pasado; si no, mañana. */
 export function nextOccurrence(time: string, now: Date): Date {
@@ -26,6 +28,15 @@ export function reminderTime(match: Date): Date {
 export function msUntilReminder(match: Date, now: Date): number | null {
   const ms = reminderTime(match).getTime() - now.getTime();
   return ms > 0 ? ms : null;
+}
+
+/** Partido semanal: el mismo día y a la misma hora (de reloj) de la próxima semana que aún no haya pasado. */
+export function nextWeeklyMatch(match: Date, now: Date): Date {
+  const next = new Date(match);
+  while (matchMoment(next, now) === 'over') {
+    next.setDate(next.getDate() + 7);
+  }
+  return next;
 }
 
 export type MatchMoment = 'before' | 'after' | 'over';

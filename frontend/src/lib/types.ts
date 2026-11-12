@@ -61,6 +61,29 @@ export interface Review {
   reviewedOn: string | null;
 }
 
+/** Revisión del fisioterapeuta (com.prepadel.review.ReviewService.ReviewView). */
+export type ReviewVerdict = 'APPROVED' | 'CHANGES';
+
+export interface ReviewItemState {
+  /** "rule:pain", "rule:risk", "exercise:<slug>", "routine:<slug>" o "program:<slug>". */
+  key: string;
+  state: 'PENDING' | 'APPROVED' | 'CHANGES';
+  comment: string | null;
+  reviewedAt: string | null;
+  /** Se revisó, pero el contenido ha cambiado desde entonces. */
+  outdated: boolean;
+}
+
+export interface ReviewState {
+  status: string;
+  reviewerName: string | null;
+  reviewerCredentials: string | null;
+  approved: number;
+  total: number;
+  items: ReviewItemState[];
+  riskWeights: string[];
+}
+
 export interface PainRule {
   consultScore: number;
   persistentScore: number;

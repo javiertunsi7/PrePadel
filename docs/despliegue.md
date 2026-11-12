@@ -17,6 +17,7 @@ La imagen se configura con tres variables de entorno. Si falta alguna, la app no
 | `DATABASE_USER` | `prepadel` |
 | `DATABASE_PASSWORD` | la que dé el alojamiento |
 | `PREPADEL_ADMIN_PASSWORD` | opcional: contraseña larga y aleatoria para el panel de retención (`/api/admin/panel`; el usuario da igual). Sin ella el panel no existe |
+| `PREPADEL_REVIEW_PASSWORD` | opcional: contraseña para la pantalla `/revision`, donde el fisio aprueba el contenido. Distinta de la del panel: es la que le das a él. Sin ella la revisión no existe |
 | `PREPADEL_PUSH_PUBLIC_KEY`, `PREPADEL_PUSH_PRIVATE_KEY` | opcionales: claves del aviso del partido con la app cerrada. Se generan **una sola vez** con `cd backend && ./mvnw -q compile && java -cp target/classes com.prepadel.reminder.VapidKeyGenerator`. No se cambian después: cambiarlas deja sin aviso a quien ya se suscribió. La privada es secreta |
 | `PREPADEL_PUSH_SUBJECT` | con las dos anteriores: tu contacto, `mailto:tu-correo` o `https://tu-dominio`. Lo ven Google, Apple y Mozilla si hay un problema con los envíos |
 

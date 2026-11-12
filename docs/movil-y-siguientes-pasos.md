@@ -62,9 +62,13 @@ El backend no cambiaría: la API ya está separada.
 
 1. **Contenido validado.** Un fisioterapeuta revisa ejercicios, dosis, ilustraciones y los
    umbrales de la regla de dolor (`prepadel.pain.*`) y de riesgo (`RiskProfileService`).
-   La galería de la app (Perfil → Ver todos los ejercicios) le enseña cada ejercicio con su
-   dibujo y su texto. Después se rellena la tabla `content_review` con su nombre y la app lo
-   muestra. Sin esto no se publica.
+   Lo hace en la pantalla `/revision` de la app, con la contraseña de
+   `PREPADEL_REVIEW_PASSWORD`: aprueba o pide cambios en cada ejercicio, rutina, programa y
+   regla, y firma con su nombre y colegiado. Cuando todo está aprobado y firmado, la app deja
+   de decir "borrador" y muestra su firma. Si una migración cambia después algo aprobado,
+   vuelve a borrador solo. Los cambios que pida se aplican con una migración nueva. Los
+   dibujos no se vigilan solos: si se cambia uno ya aprobado, hay que pedirle que lo mire.
+   Sin esto no se publica.
 2. **Vídeos.** Hoy cada ejercicio se enseña con una ilustración esquemática animada, que
    sirve para lanzar la validación con clubes. Los vídeos con el fisio siguen siendo lo que
    da credibilidad: se graban, se suben a Cloudflare Stream o Mux y basta con rellenar
@@ -79,7 +83,8 @@ El backend no cambiaría: la API ya está separada.
    que ofrecer "guarda tu cuenta" con email (enlace mágico), sin obligar a registrarse al
    principio.
 5. **RGPD.** El dolor es dato de salud. Ya hay consentimiento explícito, datos sin nombre ni
-   email y borrado completo desde Perfil. Hay borradores de la política de privacidad
+   email, borrado completo desde Perfil y descarga de todos los datos en un fichero JSON
+   (Perfil → Descargar mis datos). Hay borradores de la política de privacidad
    ([privacidad-borrador.md](privacidad-borrador.md)) y del registro de actividades
    ([registro-actividades-borrador.md](registro-actividades-borrador.md)), sin revisar por un
    profesional; la lista de lo que falta está al final del primero. Sigue pendiente: esa
@@ -96,8 +101,9 @@ El backend no cambiaría: la API ya está separada.
    contraseña de `PREPADEL_ADMIN_PASSWORD`: jugadores activos, cuántos vuelven en su segunda
    semana y en qué ejercicio se sale de las rutinas. El abandono se anota cuando el jugador
    pulsa "Salir" en mitad de una rutina; cerrar la app sin más no se registra.
-9. **Editor de contenido.** Hoy las rutinas se cambian con migraciones SQL. Un panel de
-   administración permitiría al fisio editarlas sin tocar código.
+9. **Editor de contenido.** Hoy las rutinas se cambian con migraciones SQL. El fisio ya puede
+   revisarlas y comentarlas desde `/revision`; editarlas él mismo sin tocar código sigue
+   pendiente.
 
 ## 3. Qué hace potente a esta app
 

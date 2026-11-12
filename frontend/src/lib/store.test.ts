@@ -161,10 +161,11 @@ describe('aviso del partido con la app cerrada', () => {
     store.remindWhenClosed('2026-11-12T19:00:00.000Z', target);
 
     await vi.waitFor(() =>
-      expect(api.send).toHaveBeenCalledWith('token-de-prueba', '/me/reminder', {
-        matchAt: '2026-11-12T19:00:00.000Z',
-        subscription: target,
-      }),
+      expect(api.send).toHaveBeenCalledWith(
+        'token-de-prueba',
+        '/me/reminder',
+        expect.objectContaining({ matchAt: '2026-11-12T19:00:00.000Z', subscription: target, weekly: false }),
+      ),
     );
   });
 
@@ -177,9 +178,30 @@ describe('aviso del partido con la app cerrada', () => {
     store.remindWhenClosed('2026-11-12T19:00:00.000Z', target);
 
     await vi.waitFor(() =>
-      expect(api.send).toHaveBeenCalledWith('token-de-prueba', '/me/reminder', { matchAt: null, subscription: null }),
+      expect(api.send).toHaveBeenCalledWith(
+        'token-de-prueba',
+        '/me/reminder',
+        expect.objectContaining({ matchAt: null, subscription: null }),
+      ),
     );
     expect(api.send).toHaveBeenCalledTimes(1);
+  });
+
+  it('el partido semanal manda al servidor que se repite y la zona horaria del móvil', async () => {
+    const api = withPush();
+    const store = await registeredStore(api);
+
+    store.setMatch('2026-11-12T19:00:00.000Z', true);
+    store.remindWhenClosed('2026-11-12T19:00:00.000Z', target);
+
+    expect(store.getState().matchOptions).toEqual({ weekly: true, remote: true });
+    await vi.waitFor(() =>
+      expect(api.send).toHaveBeenCalledWith(
+        'token-de-prueba',
+        '/me/reminder',
+        expect.objectContaining({ weekly: true, timeZone: expect.any(String) }),
+      ),
+    );
   });
 
   it('sin avisos en el servidor, quitar el partido no envía nada', async () => {

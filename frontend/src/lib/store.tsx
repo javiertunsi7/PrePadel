@@ -9,6 +9,15 @@ export interface Settings {
   voice: boolean;
 }
 
+export interface MatchOptions {
+  /** Se repite cada semana el mismo día y a la misma hora. */
+  weekly: boolean;
+  /** El servidor también avisa, aunque la app esté cerrada. */
+  remote: boolean;
+}
+
+const NO_MATCH_OPTIONS: MatchOptions = { weekly: false, remote: false };
+
 export interface AppState {
   /** Token del jugador; null hasta que rellena el cuestionario. */
   token: string | null;
@@ -19,8 +28,9 @@ export interface AppState {
   /** Acciones hechas en el móvil que el servidor aún no ha confirmado. */
   outbox: Mutation[];
   settings: Settings;
-  /** Hora del próximo partido (ISO), para el recordatorio. Vive solo en este móvil. */
+  /** Hora del próximo partido (ISO), para el recordatorio. */
   matchAt: string | null;
+  matchOptions: MatchOptions;
   /** El último intento de hablar con el servidor falló por falta de red. No se guarda. */
   offline: boolean;
 }
@@ -33,6 +43,7 @@ const STORAGE_KEYS: { [K in keyof AppState]?: string } = {
   outbox: 'prepadel.outbox',
   settings: 'prepadel.settings',
   matchAt: 'prepadel.match',
+  matchOptions: 'prepadel.match-options',
 };
 
 /**
@@ -55,6 +66,7 @@ export class AppStore {
       outbox: load<Mutation[]>('prepadel.outbox') ?? [],
       settings: load<Settings>('prepadel.settings') ?? { voice: true },
       matchAt: load<string>('prepadel.match'),
+      matchOptions: load<MatchOptions>('prepadel.match-options') ?? NO_MATCH_OPTIONS,
       offline: false,
     };
   }
@@ -110,19 +122,46 @@ export class AppStore {
     this.set({ settings: { ...this.state.settings, voice } });
   }
 
-  setMatch(matchAt: string | null): void {
-    this.set({ matchAt });
-    if (matchAt === null && this.state.content?.pushPublicKey) {
-      // Sin partido, el servidor tampoco debe avisar.
-      this.enqueue({ kind: 'reminder', id: newId(), matchAt: null, subscription: null });
+  /** Marca el partido (o lo quita con null). Quitarlo cancela también el aviso del servidor. */
+  setMatch(matchAt: string | null, weekly = false): void {
+    const wasRemote = this.state.matchOptions.remote;
+    this.set({ matchAt, matchOptions: { weekly: matchAt !== null && weekly, remote: false } });
+    if (matchAt === null && (wasRemote || this.state.content?.pushPublicKey)) {
+      this.enqueue({ kind: 'reminder', id: newId(), matchAt: null, subscription: null, weekly: false, timeZone: null });
     }
+  }
+
+  /** Partido semanal ya jugado: pasa al de la semana que viene. El servidor hace lo mismo por su cuenta. */
+  nextWeekMatch(matchAt: string): void {
+    this.set({ matchAt });
   }
 
   /** Pide al servidor el aviso con la app cerrada. Se ignora si el jugador ya cambió o quitó el partido. */
   remindWhenClosed(matchAt: string, subscription: PushTarget): void {
-    if (this.state.matchAt === matchAt) {
-      this.enqueue({ kind: 'reminder', id: newId(), matchAt, subscription });
+    if (this.state.matchAt !== matchAt) {
+      return;
     }
+    const { weekly } = this.state.matchOptions;
+    this.set({ matchOptions: { weekly, remote: true } });
+    this.enqueue({
+      kind: 'reminder',
+      id: newId(),
+      matchAt,
+      subscription,
+      weekly,
+      // Para que el partido semanal siga a la misma hora cuando cambia el horario de verano.
+      timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone ?? null,
+    });
+  }
+
+  /** Copia de los datos del servidor. Envía antes lo pendiente para que salga todo. Necesita conexión. */
+  async exportData(): Promise<unknown> {
+    const token = this.state.token;
+    if (!token) {
+      throw new Error('Sin jugador');
+    }
+    await this.schedule(() => this.drain(false));
+    return this.api.exportMe(token);
   }
 
   /** Borra la cuenta en el servidor (necesita conexión) y después todo lo guardado en el móvil. */
@@ -198,7 +237,7 @@ export class AppStore {
   }
 
   private forget(): void {
-    this.set({ token: null, me: null, outbox: [], matchAt: null, offline: false });
+    this.set({ token: null, me: null, outbox: [], matchAt: null, matchOptions: NO_MATCH_OPTIONS, offline: false });
   }
 
   private schedule(task: () => Promise<void>): Promise<void> {

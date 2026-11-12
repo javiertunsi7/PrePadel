@@ -201,6 +201,31 @@ class PlayerJourneyApiTest {
 	}
 
 	/** Jugador de 47 años, 4 horas a la semana, nivel medio. */
+	@Test
+	void thePlayerCanDownloadEverythingTheServerKeepsAboutThem() throws Exception {
+		String token = register(6, 0, 2);
+		enroll(token, "codo-de-padel").andExpect(status().isOk());
+		mvc.perform(post("/api/me/pain").header(HttpHeaders.AUTHORIZATION, bearer(token))
+			.contentType(MediaType.APPLICATION_JSON)
+			.content("{\"id\": \"%s\", \"zone\": \"KNEE\", \"score\": 4}".formatted(UUID.randomUUID())))
+			.andExpect(status().isOk());
+
+		mvc.perform(get("/api/me/export").header(HttpHeaders.AUTHORIZATION, bearer(token)))
+			.andExpect(status().isOk())
+			.andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header()
+				.string(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"prepadel-mis-datos.json\""))
+			.andExpect(jsonPath("$.profile.age").value(47))
+			.andExpect(jsonPath("$.profile.consentAt").isString())
+			.andExpect(jsonPath("$.pain", hasSize(4)))
+			.andExpect(jsonPath("$.pain[3].zone").value("KNEE"))
+			.andExpect(jsonPath("$.programs[0].program").value("codo-de-padel"))
+			.andExpect(jsonPath("$.completedRoutines").isArray())
+			.andExpect(jsonPath("$.nextMatch").isEmpty())
+			.andExpect(jsonPath("$.tokenHash").doesNotExist());
+
+		mvc.perform(get("/api/me/export")).andExpect(status().isUnauthorized());
+	}
+
 	private String register(int elbow, int shoulder, int knee) throws Exception {
 		String body = mvc.perform(post("/api/players").contentType(MediaType.APPLICATION_JSON).content("""
 				{"age": 47, "weeklyHours": 4, "level": "INTERMEDIATE",

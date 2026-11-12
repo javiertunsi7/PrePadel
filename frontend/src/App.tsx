@@ -16,6 +16,9 @@ import { RoutineScreen } from './screens/RoutineScreen';
 /** Hoja para revisar todas las ilustraciones; no entra en la versión de producción. */
 const DevSheet = import.meta.env.DEV ? lazy(() => import('./illustrations/DevSheet')) : null;
 
+/** Revisión del fisioterapeuta: solo se descarga si alguien abre /revision. */
+const ReviewScreen = lazy(() => import('./screens/Review'));
+
 export function App() {
   useScrollToTop(useLocation().pathname);
   return (
@@ -31,6 +34,15 @@ export function App() {
         />
       )}
       <Route path="/bienvenida" element={<Onboarding />} />
+      {/* Fuera del jugador: el fisio no hace el cuestionario. La protege una contraseña en el servidor. */}
+      <Route
+        path="/revision"
+        element={
+          <Suspense fallback={null}>
+            <ReviewScreen />
+          </Suspense>
+        }
+      />
       <Route element={<RequirePlayer />}>
         <Route element={<Shell />}>
           <Route index element={<Home />} />

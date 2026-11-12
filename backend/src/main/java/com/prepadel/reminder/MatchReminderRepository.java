@@ -11,6 +11,9 @@ public interface MatchReminderRepository extends JpaRepository<MatchReminder, UU
 	/** Avisos sin enviar de partidos que empiezan dentro de ese tramo. */
 	List<MatchReminder> findBySentAtIsNullAndMatchAtGreaterThanAndMatchAtLessThanEqual(Instant after, Instant until);
 
-	long deleteByMatchAtLessThan(Instant before);
+	/** Partidos semanales que ya han empezado: toca pasarlos a la semana siguiente. */
+	List<MatchReminder> findByWeeklyTrueAndMatchAtLessThanEqual(Instant now);
+
+	long deleteByWeeklyFalseAndMatchAtLessThan(Instant before);
 
 }

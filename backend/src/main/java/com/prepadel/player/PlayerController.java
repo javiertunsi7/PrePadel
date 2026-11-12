@@ -11,7 +11,10 @@ import com.prepadel.reminder.ReminderService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 
+import org.springframework.http.CacheControl;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -36,10 +39,13 @@ public class PlayerController {
 	private final ProgressService progressService;
 	private final PainService painService;
 	private final ReminderService reminderService;
+	private final PlayerExportService exportService;
 
 	public PlayerController(PlayerService playerService, PlayerStateService stateService,
-			ProgressService progressService, PainService painService, ReminderService reminderService) {
+			ProgressService progressService, PainService painService, ReminderService reminderService,
+			PlayerExportService exportService) {
 		this.reminderService = reminderService;
+		this.exportService = exportService;
 		this.playerService = playerService;
 		this.stateService = stateService;
 		this.progressService = progressService;
@@ -57,6 +63,15 @@ public class PlayerController {
 	@GetMapping("/me")
 	public PlayerState me(@CurrentPlayer Player player) {
 		return stateService.stateOf(player);
+	}
+
+	/** Todo lo que el servidor guarda del jugador, como fichero JSON para descargar. */
+	@GetMapping("/me/export")
+	public ResponseEntity<PlayerExportService.Export> export(@CurrentPlayer Player player) {
+		return ResponseEntity.ok()
+			.header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"prepadel-mis-datos.json\"")
+			.cacheControl(CacheControl.noStore())
+			.body(exportService.export(player.getId()));
 	}
 
 	@DeleteMapping("/me")

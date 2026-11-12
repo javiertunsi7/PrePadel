@@ -72,6 +72,16 @@ class StaticWebTest {
 			.andExpect(header().string(HttpHeaders.CACHE_CONTROL, "no-cache"));
 	}
 
+	/** Dentro del jar todo tiene fecha de 1980: con Last-Modified, una web nueva contestaría 304. */
+	@Test
+	void aNewVersionOfTheWebIsNeverAnsweredAsNotModified() throws Exception {
+		for (String path : List.of("/", "/sw.js", "/programas")) {
+			mvc.perform(get(path).header(HttpHeaders.IF_MODIFIED_SINCE, "Fri, 01 Feb 1980 00:00:00 GMT"))
+				.andExpect(status().isOk())
+				.andExpect(header().doesNotExist(HttpHeaders.LAST_MODIFIED));
+		}
+	}
+
 	@Test
 	void theInstallableAppManifestIsServedWithItsOwnContentType() throws Exception {
 		mvc.perform(get("/manifest.webmanifest"))

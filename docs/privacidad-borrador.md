@@ -34,7 +34,10 @@ llega la hora, el servidor manda el aviso al servicio de notificaciones de tu na
 (Google si usas Chrome o Android, Apple si usas iPhone, Mozilla si usas Firefox), que lo
 entrega en tu móvil. El aviso va cifrado: ese servicio no puede leer el texto, que además no
 lleva ningún dato tuyo ni de dolor. La hora del partido y la dirección se borran del servidor
-24 horas después del partido, al quitar el partido en la app o al borrar tu cuenta.
+24 horas después del partido, al quitar el partido en la app o al borrar tu cuenta. Si
+marcas que juegas todas las semanas, se guardan también la zona horaria de tu móvil (para
+mantener la hora al cambiar el horario de verano) y se conservan hasta que dejes de pedir el
+aviso o borres tu cuenta.
 
 Tu dirección IP se usa unos instantes para evitar abusos (un máximo de altas por conexión y
 hora). Se mantiene en la memoria del servidor como mucho una hora y no se guarda en la base de
@@ -74,8 +77,9 @@ sin abrir la app. Hoy no está implementado.]
 
 - **Borrar todo y retirar el consentimiento:** en la app, Perfil → borrar mis datos. Se elimina
   al momento del servidor y de tu móvil, sin pasos intermedios.
-- **Acceso:** la app te muestra tu perfil, tu historial de dolor y tu progreso.
-  [Hoy no hay una función para descargar una copia: valorar si hace falta para la portabilidad.]
+- **Acceso y portabilidad:** la app te muestra tu perfil, tu historial de dolor y tu
+  progreso, y en Perfil → Descargar mis datos te llevas una copia de todo lo que guardamos de
+  ti en un fichero JSON.
 - **Rectificación, oposición y limitación:** escribe a [email].
 
 Como no sabemos quién eres, no podemos localizar tus datos a partir de tu nombre o tu email
@@ -111,5 +115,5 @@ PrePádel no es un producto sanitario ni sustituye a un profesional. [Enlazar al
    Perfil. Hoy la app no la enlaza.
 5. Revisar si el texto de consentimiento de la app debe mencionar el registro de rutinas
    abandonadas. Si cambia, hay que subir la versión del consentimiento en `PlayerService`.
-6. Decidir el plazo de borrado por inactividad, la edad mínima y la descarga de datos.
+6. Decidir el plazo de borrado por inactividad y la edad mínima.
 7. Firmar el contrato de encargado con el alojamiento y activar el cifrado en reposo.

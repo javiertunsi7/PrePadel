@@ -13,9 +13,28 @@ export function Profile() {
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
   if (!content || !me) {
     return null;
   }
+
+  const downloadData = async () => {
+    setExporting(true);
+    setError(null);
+    try {
+      const data = await store.exportData();
+      const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'prepadel-mis-datos.json';
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      setError('No se han podido descargar. Hace falta conexión: inténtalo cuando tengas cobertura.');
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const deleteAccount = async () => {
     setDeleting(true);
@@ -98,8 +117,8 @@ export function Profile() {
       <h2 className="section-title">Tus datos</h2>
       <section className="card">
         <p>
-          No guardamos tu nombre ni tu email. Solo tus respuestas del cuestionario, las rutinas que haces y tu registro
-          de dolor.
+          No guardamos tu nombre ni tu email. Solo tus respuestas del cuestionario, las rutinas que haces o dejas a
+          medias, tu registro de dolor y, si pides el aviso, la hora de tu partido.
         </p>
         {outbox.length > 0 && (
           <p className="muted">
@@ -112,6 +131,13 @@ export function Profile() {
             {error}
           </p>
         )}
+        <button
+          className="btn btn--secondary btn--block"
+          disabled={exporting}
+          onClick={() => void downloadData()}
+        >
+          {exporting ? 'Preparando…' : 'Descargar mis datos'}
+        </button>
         {confirmingDelete ? (
           <div className="confirm">
             <p>Se borrará todo tu historial y no se puede deshacer.</p>

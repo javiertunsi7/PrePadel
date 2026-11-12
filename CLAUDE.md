@@ -17,6 +17,9 @@ El MVP son cinco funcionalidades y están construidas:
 4. Registro de dolor en un toque (0 a 10) y regla de "para y consulta".
 5. Recordatorio 30 min antes del partido: la app lo lanza si está abierta y el servidor lo
    manda por Web Push si está cerrada (con claves `prepadel.push.*`; sin probar en móvil real).
+   Puede repetirse cada semana.
+
+Añadidos aprobados por Javier fuera de las cinco: partido semanal y "Descargar mis datos".
 
 **Fuera del MVP, no se construye:** nutrición, integración con relojes, comunidad o funciones
 sociales, análisis de vídeo.
@@ -24,8 +27,8 @@ sociales, análisis de vídeo.
 **Pendiente y permitido** (única lista de trabajo; el detalle está en
 `docs/movil-y-siguientes-pasos.md`, sección 2): contenido validado por un fisio, vídeos,
 alojamiento, cuenta recuperable por email, RGPD (hay borradores sin revisar en `docs/`), pagos,
-editor o revisión de contenido para el fisio, app Android con Capacitor,
-pruebas de la app entera en navegador.
+editor de contenido para el fisio (la revisión ya está en `/revision`), app Android con
+Capacitor, pruebas de la app entera en navegador.
 
 **Regla.** Si lo que se pide no es una de las cinco funcionalidades ni está en la lista de
 pendientes, o es una zona del cuerpo nueva (la espalda no está), dilo en una frase antes de
@@ -45,14 +48,15 @@ Dentro de una tarea:
 ## Reglas que no se rompen
 
 - **Rutinas como datos.** Ejercicios, duraciones y progresiones viven en tablas, no en código.
-  El contenido se cambia con una migración nueva (`V5__...sql`). Las ya existentes (`V1` a
-  `V4`) no se editan: Flyway lo comprueba.
+  El contenido se cambia con una migración nueva (`V7__...sql`). Las ya existentes (`V1` a
+  `V6`) no se editan: Flyway lo comprueba.
 - **Offline first.** Todo lo que el jugador hace debe funcionar sin cobertura: pasa por la
   cola de `frontend/src/lib/store.tsx` y `sync.ts`.
 - **Manos libres.** Voz, pitidos, cuenta atrás gigante, letra y botones grandes.
 - **El contenido es un borrador.** Ejercicios, ilustraciones, pesos de riesgo y umbrales de
   dolor los redactó Claude, no un profesional. Nunca los describas como validados ni quites
-  el aviso de borrador mientras `content_review` diga `DRAFT`.
+  el aviso de borrador mientras `content_review` diga `DRAFT`. Ese estado solo lo cambia
+  `ReviewService`, cuando el fisio aprueba todo en `/revision` y firma; no lo toques a mano.
 - **Jugador anónimo.** Token en el móvil, sin nombre ni email; del token solo se guarda el
   hash. El dolor es dato de salud (RGPD): no se envía a servicios externos.
 - Las rutinas duran entre 8 y 12 minutos y cada zona tiene su programa de 4 semanas. Hay
@@ -64,24 +68,30 @@ Dentro de una tarea:
 backend/src/main/java/com/prepadel/
   content/   catálogo de solo lectura             GET /api/content
   player/    cuestionario, token, estado          POST /api/players, GET|DELETE /api/me,
-             (PlayerController tiene la API        POST /api/me/{enrollment,completions,
-              del jugador)                              abandonments,reminder,pain}
+             (PlayerController tiene la API        GET /api/me/export,
+              del jugador)                         POST /api/me/{enrollment,completions,
+                                                        abandonments,reminder,pain}
+             RegistrationRateLimiter: tope de altas por IP y hora (prepadel.rate-limit.*)
   risk/      RiskProfileService: pesos del perfil de riesgo
   pain/      PainRules, PainAlertService; umbrales prepadel.pain.* en application.properties
   progress/  programa activo, rutinas completadas y abandonadas
-  reminder/  aviso del partido con la app cerrada: WebPush (cifrado y firma, sin librerías),
-             envío programado; solo a servicios de push conocidos; VapidKeyGenerator
+  reminder/  aviso del partido con la app cerrada (también semanal): WebPush (cifrado y
+             firma, sin librerías), envío programado; solo a servicios de push conocidos
+  review/    revisión del fisio pieza a pieza      GET /api/review, PUT /api/review/{reviewer,
+             con huella del contenido               items/{clave}} (prepadel.review.password)
   stats/     panel de retención, solo totales     GET /api/admin/{panel,stats}
              (contraseña prepadel.admin.password; vacía = 404)
-             RegistrationRateLimiter: tope de altas por IP y hora (prepadel.rate-limit.*)
-  web/       en producción sirve la web construida junto a la API;
+  web/       en producción sirve la web construida junto a la API; PasswordGate (contraseña
+             de las páginas internas);
              SecurityHeadersFilter: cabeceras de seguridad y CSP (si la web carga algo de
              otro dominio, hay que añadirlo ahí)
 backend/src/main/resources/db/migration/   V1 esquema, V2 contenido inicial,
-                                           V3 rutinas abandonadas, V4 aviso del partido
+                                           V3 rutinas abandonadas, V4 aviso del partido,
+                                           V5 revisión del fisio, V6 partido semanal
 
 frontend/src/
-  App.tsx         rutas: / , /programas[/:slug], /dolor, /perfil[/ejercicios], /rutina/:slug, /bienvenida
+  App.tsx         rutas: / , /programas[/:slug], /dolor, /perfil[/ejercicios], /rutina/:slug, /bienvenida,
+                  /revision (fisio, carga aparte)
   lib/            api, store (estado + cola offline), sync, player (reproductor puro),
                   voice, reminder, derive, types, copy (textos), zones
   screens/        una pantalla por ruta

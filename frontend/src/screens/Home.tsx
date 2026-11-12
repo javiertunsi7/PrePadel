@@ -5,7 +5,14 @@ import { CheckIcon, ChevronIcon, ClockIcon, PainIcon, ZoneIcon } from '../compon
 import { Mascot } from '../components/Mascot';
 import { completedToday, formatMinutes, formatTime, sameDay, streakDays } from '../lib/derive';
 import { useNow } from '../lib/hooks';
-import { matchMoment, nextOccurrence, pushSubscription, reminderTime } from '../lib/reminder';
+import {
+  MATCH_OVER_MS,
+  matchMoment,
+  nextOccurrence,
+  nextWeeklyMatch,
+  pushSubscription,
+  reminderTime,
+} from '../lib/reminder';
 import { useAppState, useStore } from '../lib/store';
 import type { Content, PlayerState, Routine } from '../lib/types';
 import { zoneVars } from '../lib/zones';
@@ -151,16 +158,32 @@ function ProgramToday({ content, me, doneToday }: { content: Content; me: Player
 /** Recordatorio ligado al partido: aviso 30 minutos antes de la hora que marca el jugador. */
 function MatchCard({ now }: { now: Date }) {
   const store = useStore();
-  const { matchAt, content } = useAppState();
+  const { matchAt, matchOptions, content } = useAppState();
   const [time, setTime] = useState('');
+  const [weekly, setWeekly] = useState(false);
   const match = matchAt ? new Date(matchAt) : null;
   const moment = match ? matchMoment(match, now) : null;
 
-  useEffect(() => {
-    if (moment === 'over') {
+  // Partido jugado: el semanal pasa a la semana que viene; el suelto se quita.
+  const finish = () => {
+    if (match && matchOptions.weekly) {
+      const afterThisOne = new Date(match.getTime() + MATCH_OVER_MS);
+      store.nextWeekMatch(nextWeeklyMatch(match, afterThisOne).toISOString());
+    } else {
       store.setMatch(null);
     }
-  }, [moment, store]);
+  };
+
+  useEffect(() => {
+    if (moment !== 'over' || !matchAt) {
+      return;
+    }
+    if (matchOptions.weekly) {
+      store.nextWeekMatch(nextWeeklyMatch(new Date(matchAt), now).toISOString());
+    } else {
+      store.setMatch(null);
+    }
+  }, [moment, matchAt, matchOptions.weekly, now, store]);
 
   if (!match || moment === 'over') {
     return (
@@ -172,7 +195,7 @@ function MatchCard({ now }: { now: Date }) {
             return;
           }
           const matchAt = nextOccurrence(time, new Date()).toISOString();
-          store.setMatch(matchAt);
+          store.setMatch(matchAt, weekly);
           // Pide permiso y, si el móvil lo admite, deja el aviso también en el servidor (app cerrada).
           void pushSubscription(content?.pushPublicKey).then((subscription) => {
             if (subscription) {
@@ -197,6 +220,10 @@ function MatchCard({ now }: { now: Date }) {
             Avisarme
           </button>
         </div>
+        <label className="check">
+          <input type="checkbox" checked={weekly} onChange={(event) => setWeekly(event.target.checked)} />
+          Juego todas las semanas a esta hora
+        </label>
       </form>
     );
   }
@@ -210,18 +237,21 @@ function MatchCard({ now }: { now: Date }) {
           </span>
           <div className="row__text">
             <span className="eyebrow">
-              Partido {sameDay(match, now) ? 'hoy' : 'mañana'} a las {formatTime(match)}
+              Partido {dayLabel(match, now)} a las {formatTime(match)}
+              {matchOptions.weekly && ' · cada semana'}
             </span>
             <strong>Aviso para calentar a las {formatTime(reminderTime(match))}</strong>
             <span className="muted">
-              {canNotify()
-                ? 'Deja PrePádel abierta para que llegue el aviso.'
-                : 'Activa las notificaciones del navegador para recibir el aviso.'}
+              {matchOptions.remote
+                ? 'Te llegará aunque cierres la app.'
+                : canNotify()
+                  ? 'Deja PrePádel abierta para que llegue el aviso.'
+                  : 'Activa las notificaciones del navegador para recibir el aviso.'}
             </span>
           </div>
         </div>
         <button className="link-btn" onClick={() => store.setMatch(null)}>
-          Quitar aviso
+          {matchOptions.weekly ? 'Dejar de avisar cada semana' : 'Quitar aviso'}
         </button>
       </section>
     );
@@ -237,12 +267,25 @@ function MatchCard({ now }: { now: Date }) {
         <Link className="btn btn--secondary" to="/dolor">
           Registrar dolor
         </Link>
-        <button className="link-btn" onClick={() => store.setMatch(null)}>
+        <button className="link-btn" onClick={finish}>
           Listo
         </button>
       </div>
     </section>
   );
+}
+
+/** "hoy", "mañana" o "el martes". */
+function dayLabel(match: Date, now: Date): string {
+  if (sameDay(match, now)) {
+    return 'hoy';
+  }
+  const tomorrow = new Date(now);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  if (sameDay(match, tomorrow)) {
+    return 'mañana';
+  }
+  return 'el ' + match.toLocaleDateString('es-ES', { weekday: 'long' });
 }
 
 function canNotify(): boolean {

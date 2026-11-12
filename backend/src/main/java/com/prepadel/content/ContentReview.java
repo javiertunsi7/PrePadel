@@ -28,6 +28,14 @@ public class ContentReview {
 	protected ContentReview() {
 	}
 
+	/** Lo actualiza la revisión del fisioterapeuta (paquete review). */
+	public void update(String status, String reviewerName, String reviewerCredentials, LocalDate reviewedOn) {
+		this.status = status;
+		this.reviewerName = reviewerName;
+		this.reviewerCredentials = reviewerCredentials;
+		this.reviewedOn = reviewedOn;
+	}
+
 	public String getStatus() {
 		return status;
 	}

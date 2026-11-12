@@ -69,6 +69,21 @@ public class RiskProfileService {
 				.map(ZoneRisk::zone);
 	}
 
+	/**
+	 * Los pesos explicados en frases, para que los revise el fisioterapeuta.
+	 * Se calculan con las mismas funciones que el perfil: si cambia un peso, cambia el texto.
+	 */
+	public static List<String> describeWeights() {
+		return List.of(
+				"Cada punto de dolor actual (0 a 10) suma %d puntos.".formatted(POINTS_PER_PAIN_POINT),
+				"Horas de juego a la semana: 2 o 3 suman %d; 4 o 5 suman %d; 6 o más suman %d."
+					.formatted(loadPoints(2), loadPoints(4), loadPoints(6)),
+				"Edad: de 40 a 44 suma %d; de 45 a 49 suma %d; 50 o más suma %d."
+					.formatted(agePoints(40), agePoints(45), agePoints(50)),
+				"Estar empezando a jugar suma %d.".formatted(levelPoints(SkillLevel.BEGINNER)),
+				"Riesgo moderado desde %d puntos y alto desde %d (máximo 100).".formatted(MODERATE_FROM, HIGH_FROM));
+	}
+
 	private static RiskLevel levelFor(int score) {
 		if (score >= HIGH_FROM) {
 			return RiskLevel.HIGH;
