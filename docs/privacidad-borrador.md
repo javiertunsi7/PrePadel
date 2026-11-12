@@ -24,9 +24,17 @@ huella de esa clave, con la que no se puede reconstruir.
 | Programa que sigues y rutinas que terminas, con su fecha | Llevar tu progreso |
 | Rutinas que dejas a medias con el botón "Salir" y en qué ejercicio | Saber qué ejercicios hay que mejorar |
 | Fecha y versión del consentimiento que aceptaste | Poder demostrar que lo diste |
+| Hora de tu próximo partido y la dirección de notificaciones de tu móvil, solo si aceptas los avisos | Avisarte 30 minutos antes aunque tengas la app cerrada |
 
-En tu móvil, y solo ahí, se guardan además la hora de tu próximo partido y si quieres la voz
-activada.
+En tu móvil, y solo ahí, se guarda además si quieres la voz activada.
+
+**Avisos del partido.** Si das permiso de notificaciones, tu navegador crea una dirección de
+avisos para tu móvil y la app la envía al servidor junto con la hora del partido. Cuando
+llega la hora, el servidor manda el aviso al servicio de notificaciones de tu navegador
+(Google si usas Chrome o Android, Apple si usas iPhone, Mozilla si usas Firefox), que lo
+entrega en tu móvil. El aviso va cifrado: ese servicio no puede leer el texto, que además no
+lleva ningún dato tuyo ni de dolor. La hora del partido y la dirección se borran del servidor
+24 horas después del partido, al quitar el partido en la app o al borrar tu cuenta.
 
 Tu dirección IP se usa unos instantes para evitar abusos (un máximo de altas por conexión y
 hora). Se mantiene en la memoria del servidor como mucho una hora y no se guarda en la base de
@@ -46,9 +54,14 @@ son totales calculados en nuestro propio servidor; no permiten identificarte.
 
 ## Con quién se comparten
 
-Con nadie, salvo el proveedor que aloja el servidor y la base de datos, que actúa como
-encargado del tratamiento: [proveedor], con servidores en [país de la UE]. No hay
-transferencias fuera del Espacio Económico Europeo. [Confirmar al elegir proveedor.]
+Con nadie, salvo:
+
+- El proveedor que aloja el servidor y la base de datos, que actúa como encargado del
+  tratamiento: [proveedor], con servidores en [país de la UE]. [Confirmar al elegir proveedor.]
+- Si aceptas los avisos del partido, el servicio de notificaciones de tu navegador (Google,
+  Apple o Mozilla) recibe la dirección de avisos de tu móvil y un mensaje cifrado a la hora
+  del aviso. Estos servicios pueden estar fuera del Espacio Económico Europeo.
+  [Revisar con el abogado la base de la transferencia y cómo describirlo.]
 
 Tus datos de dolor no se envían a ningún otro servicio.
 

@@ -31,6 +31,8 @@ export default defineConfig(({ mode }) => ({
           globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
           navigateFallback: '/index.html',
           navigateFallbackDenylist: [/^\/api\//],
+          // Recibe el aviso del partido con la app cerrada (public/push-sw.js).
+          importScripts: ['push-sw.js'],
         },
       }),
   ],

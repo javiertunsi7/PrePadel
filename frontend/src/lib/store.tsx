@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useSyncExternalStore, type ReactN
 import { ApiError, type Api } from './api';
 import { load, remove, save } from './storage';
 import { applyOptimistic, newId, toRequest, type Mutation } from './sync';
-import type { Content, OnboardingAnswers, PainContext, PlayerState } from './types';
+import type { Content, OnboardingAnswers, PainContext, PlayerState, PushTarget } from './types';
 
 export interface Settings {
   /** Voz y pitidos del modo manos libres. */
@@ -112,6 +112,17 @@ export class AppStore {
 
   setMatch(matchAt: string | null): void {
     this.set({ matchAt });
+    if (matchAt === null && this.state.content?.pushPublicKey) {
+      // Sin partido, el servidor tampoco debe avisar.
+      this.enqueue({ kind: 'reminder', id: newId(), matchAt: null, subscription: null });
+    }
+  }
+
+  /** Pide al servidor el aviso con la app cerrada. Se ignora si el jugador ya cambió o quitó el partido. */
+  remindWhenClosed(matchAt: string, subscription: PushTarget): void {
+    if (this.state.matchAt === matchAt) {
+      this.enqueue({ kind: 'reminder', id: newId(), matchAt, subscription });
+    }
   }
 
   /** Borra la cuenta en el servidor (necesita conexión) y después todo lo guardado en el móvil. */

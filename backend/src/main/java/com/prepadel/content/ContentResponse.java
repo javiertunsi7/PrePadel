@@ -15,7 +15,9 @@ public record ContentResponse(
 		List<RoutineDto> routines,
 		List<ProgramDto> programs,
 		Review review,
-		PainRule painRule) {
+		PainRule painRule,
+		/** Clave para suscribirse a los avisos con la app cerrada; null si el servidor no los envía. */
+		String pushPublicKey) {
 
 	public record Zone(String code, String name, String tagline) {
 

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { fakeApi, playerState, registeredStore } from '../test/fixtures';
+import { content, fakeApi, playerState, registeredStore } from '../test/fixtures';
 import { ApiError, NetworkError, type Api } from './api';
 import { AppStore } from './store';
 
@@ -146,5 +146,50 @@ describe('cuenta y ajustes', () => {
     store.setVoice(false);
 
     expect(new AppStore(fakeApi()).getState().settings.voice).toBe(false);
+  });
+});
+
+describe('aviso del partido con la app cerrada', () => {
+  const target = { endpoint: 'https://fcm.googleapis.com/fcm/send/abc', p256dh: 'clave', auth: 'secreto' };
+  const withPush = () => fakeApi({ content: vi.fn(async () => ({ ...content, pushPublicKey: 'clave-publica' })) });
+
+  it('manda al servidor la hora del partido y la suscripción del móvil', async () => {
+    const api = withPush();
+    const store = await registeredStore(api);
+
+    store.setMatch('2026-11-12T19:00:00.000Z');
+    store.remindWhenClosed('2026-11-12T19:00:00.000Z', target);
+
+    await vi.waitFor(() =>
+      expect(api.send).toHaveBeenCalledWith('token-de-prueba', '/me/reminder', {
+        matchAt: '2026-11-12T19:00:00.000Z',
+        subscription: target,
+      }),
+    );
+  });
+
+  it('si el jugador ya quitó el partido, una suscripción que llega tarde no lo vuelve a programar', async () => {
+    const api = withPush();
+    const store = await registeredStore(api);
+
+    store.setMatch('2026-11-12T19:00:00.000Z');
+    store.setMatch(null);
+    store.remindWhenClosed('2026-11-12T19:00:00.000Z', target);
+
+    await vi.waitFor(() =>
+      expect(api.send).toHaveBeenCalledWith('token-de-prueba', '/me/reminder', { matchAt: null, subscription: null }),
+    );
+    expect(api.send).toHaveBeenCalledTimes(1);
+  });
+
+  it('sin avisos en el servidor, quitar el partido no envía nada', async () => {
+    const api = fakeApi();
+    const store = await registeredStore(api);
+
+    store.setMatch('2026-11-12T19:00:00.000Z');
+    store.setMatch(null);
+
+    expect(store.getState().outbox).toEqual([]);
+    expect(api.send).not.toHaveBeenCalled();
   });
 });

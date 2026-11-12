@@ -1,4 +1,4 @@
-import type { Content, Enrollment, PainContext, PlayerState } from './types';
+import type { Content, Enrollment, PainContext, PlayerState, PushTarget } from './types';
 
 /**
  * Lo que el jugador hace en la app. Cada acción se aplica en local al instante
@@ -11,6 +11,8 @@ export type Mutation =
   | { kind: 'pain'; id: string; zone: string; score: number; context: PainContext; recordedAt: string }
   | { kind: 'enroll'; id: string; programSlug: string }
   // Salir de una rutina a medias: no cambia nada en la app, solo cuenta para saber dónde se abandona.
+  // Hora del partido para el aviso con la app cerrada; sin hora, se cancela.
+  | { kind: 'reminder'; id: string; matchAt: string | null; subscription: PushTarget | null }
   | { kind: 'abandonment'; id: string; routineSlug: string; exerciseSlug: string; abandonedAt: string };
 
 export function toRequest(mutation: Mutation): { path: string; body: unknown } {
@@ -33,6 +35,8 @@ export function toRequest(mutation: Mutation): { path: string; body: unknown } {
       };
     case 'enroll':
       return { path: '/me/enrollment', body: { programSlug: mutation.programSlug } };
+    case 'reminder':
+      return { path: '/me/reminder', body: { matchAt: mutation.matchAt, subscription: mutation.subscription } };
     case 'abandonment':
       return {
         path: '/me/abandonments',
@@ -50,6 +54,7 @@ export function toRequest(mutation: Mutation): { path: string; body: unknown } {
 export function applyOptimistic(state: PlayerState, mutation: Mutation, content: Content | null): PlayerState {
   switch (mutation.kind) {
     case 'abandonment':
+    case 'reminder':
       return state;
     case 'completion': {
       if (state.recentCompletions.some((completion) => completion.id === mutation.id)) {

@@ -16,8 +16,10 @@ la validación que pide el documento de producto.
 
 Límites de la PWA que conviene conocer:
 
-- El recordatorio del partido solo salta con la app abierta: la web no puede programar
-  notificaciones locales con la app cerrada.
+- El recordatorio del partido con la app cerrada lo manda el servidor por Web Push (claves
+  `PREPADEL_PUSH_*`, ver [despliegue.md](despliegue.md)). Sin esas claves, solo avisa con la
+  app abierta. En Android funciona en Chrome; en iPhone solo si la app está instalada en la
+  pantalla de inicio (iOS 16.4 o posterior). Falta probarlo en un móvil real.
 - La voz depende de las voces que traiga cada móvil. Hay que probarla en móviles reales,
   sobre todo en iPhone.
 - No aparece en App Store ni Google Play.

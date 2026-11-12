@@ -73,6 +73,15 @@ export interface Content {
   programs: Program[];
   review: Review;
   painRule: PainRule;
+  /** Clave para suscribirse a los avisos con la app cerrada; sin ella el servidor no los envía. */
+  pushPublicKey?: string | null;
+}
+
+/** Dónde mandar un aviso a este móvil: lo que da el navegador al suscribirse. */
+export interface PushTarget {
+  endpoint: string;
+  p256dh: string;
+  auth: string;
 }
 
 export type SkillLevel = 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';

@@ -34,7 +34,20 @@
 | **Conservación** | La misma que la cuenta: se borra con ella |
 | **Dónde está** | Tabla `routine_abandonment`; panel en `/api/admin/panel`, protegido con contraseña |
 
-## 3. Seguridad del servicio
+## 3. Aviso del partido con la app cerrada
+
+| | |
+|---|---|
+| **Finalidad** | Avisar al jugador 30 minutos antes de su partido para que caliente |
+| **Base legal** | Consentimiento: el permiso de notificaciones que el jugador concede en su navegador (art. 6.1.a) [confirmar] |
+| **Interesados** | Jugadores que marcan la hora del partido y aceptan las notificaciones |
+| **Datos** | Hora del partido; dirección de notificaciones del móvil (endpoint) y sus claves de cifrado |
+| **Destinatarios** | Proveedor de alojamiento. Servicio de notificaciones del navegador del jugador (Google, Apple o Mozilla), que recibe la dirección y un mensaje cifrado sin datos personales ni de salud |
+| **Transferencias internacionales** | Posibles, a través de esos servicios [revisar con el abogado] |
+| **Conservación** | Hasta 24 horas después del partido; antes si el jugador quita el partido o borra su cuenta |
+| **Dónde está** | Tabla `match_reminder` |
+
+## 4. Seguridad del servicio
 
 | | |
 |---|---|
@@ -60,3 +73,4 @@
 | Encargado | Servicio | Contrato (art. 28) |
 |---|---|---|
 | [Proveedor de alojamiento] | Servidor y base de datos PostgreSQL en la UE | [pendiente de firmar] |
+| Google, Apple, Mozilla (servicio de notificaciones del navegador) | Entrega del aviso del partido, cifrado | [revisar con el abogado si aplica y cómo] |

@@ -5,7 +5,7 @@ import { CheckIcon, ChevronIcon, ClockIcon, PainIcon, ZoneIcon } from '../compon
 import { Mascot } from '../components/Mascot';
 import { completedToday, formatMinutes, formatTime, sameDay, streakDays } from '../lib/derive';
 import { useNow } from '../lib/hooks';
-import { matchMoment, nextOccurrence, reminderTime } from '../lib/reminder';
+import { matchMoment, nextOccurrence, pushSubscription, reminderTime } from '../lib/reminder';
 import { useAppState, useStore } from '../lib/store';
 import type { Content, PlayerState, Routine } from '../lib/types';
 import { zoneVars } from '../lib/zones';
@@ -151,7 +151,7 @@ function ProgramToday({ content, me, doneToday }: { content: Content; me: Player
 /** Recordatorio ligado al partido: aviso 30 minutos antes de la hora que marca el jugador. */
 function MatchCard({ now }: { now: Date }) {
   const store = useStore();
-  const { matchAt } = useAppState();
+  const { matchAt, content } = useAppState();
   const [time, setTime] = useState('');
   const match = matchAt ? new Date(matchAt) : null;
   const moment = match ? matchMoment(match, now) : null;
@@ -171,10 +171,14 @@ function MatchCard({ now }: { now: Date }) {
           if (!time) {
             return;
           }
-          if ('Notification' in window && Notification.permission === 'default') {
-            void Notification.requestPermission();
-          }
-          store.setMatch(nextOccurrence(time, new Date()).toISOString());
+          const matchAt = nextOccurrence(time, new Date()).toISOString();
+          store.setMatch(matchAt);
+          // Pide permiso y, si el móvil lo admite, deja el aviso también en el servidor (app cerrada).
+          void pushSubscription(content?.pushPublicKey).then((subscription) => {
+            if (subscription) {
+              store.remindWhenClosed(matchAt, subscription);
+            }
+          });
         }}
       >
         <label htmlFor="match-time" className="row__text">

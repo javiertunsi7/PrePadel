@@ -4,6 +4,7 @@ import java.util.Comparator;
 import java.util.List;
 
 import com.prepadel.pain.PainRules;
+import com.prepadel.reminder.PushGateway;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,9 +17,12 @@ public class ContentService {
 	private final ProgramRepository programRepository;
 	private final ContentReviewRepository reviewRepository;
 	private final PainRules painRules;
+	private final PushGateway pushGateway;
 
 	public ContentService(BodyZoneRepository zoneRepository, RoutineRepository routineRepository,
-			ProgramRepository programRepository, ContentReviewRepository reviewRepository, PainRules painRules) {
+			ProgramRepository programRepository, ContentReviewRepository reviewRepository, PainRules painRules,
+			PushGateway pushGateway) {
+		this.pushGateway = pushGateway;
 		this.zoneRepository = zoneRepository;
 		this.routineRepository = routineRepository;
 		this.programRepository = programRepository;
@@ -47,7 +51,7 @@ public class ContentService {
 				.orElse(ContentResponse.Review.DRAFT);
 
 		return new ContentResponse(zones.stream().map(ContentResponse.Zone::from).toList(), routines, programs,
-				review, ContentResponse.PainRule.from(painRules));
+				review, ContentResponse.PainRule.from(painRules), pushGateway.publicKey());
 	}
 
 }

@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
-import { matchMoment, msUntilReminder, nextOccurrence, reminderTime } from './reminder';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { matchMoment, msUntilReminder, nextOccurrence, pushSubscription, reminderTime } from './reminder';
 
 const at = (hours: number, minutes: number, day = 10) => new Date(2026, 10, day, hours, minutes);
 
@@ -28,5 +28,49 @@ describe('recordatorio ligado al partido', () => {
     expect(matchMoment(at(19, 0), at(19, 0))).toBe('after');
     expect(matchMoment(at(19, 0), at(21, 59))).toBe('after');
     expect(matchMoment(at(19, 0), at(22, 0))).toBe('over');
+  });
+});
+
+describe('suscripción a los avisos con la app cerrada', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  const browser = (permission: NotificationPermission, subscribe = vi.fn()) => {
+    vi.stubGlobal('Notification', { permission, requestPermission: vi.fn(async () => permission) });
+    vi.stubGlobal('PushManager', class {});
+    vi.stubGlobal('navigator', {
+      serviceWorker: {
+        getRegistration: async () => ({ pushManager: { getSubscription: async () => null, subscribe } }),
+      },
+    });
+    return subscribe;
+  };
+
+  it('con permiso suscribe el móvil con la clave del servidor y devuelve a dónde avisar', async () => {
+    const subscribe = browser(
+      'granted',
+      vi.fn(async () => ({
+        toJSON: () => ({ endpoint: 'https://fcm.googleapis.com/fcm/send/abc', keys: { p256dh: 'clave', auth: 'secreto' } }),
+      })),
+    );
+
+    await expect(pushSubscription('AQID')).resolves.toEqual({
+      endpoint: 'https://fcm.googleapis.com/fcm/send/abc',
+      p256dh: 'clave',
+      auth: 'secreto',
+    });
+    expect(subscribe).toHaveBeenCalledWith({ userVisibleOnly: true, applicationServerKey: new Uint8Array([1, 2, 3]) });
+  });
+
+  it('sin permiso, sin clave o sin soporte no suscribe y la app sigue como antes', async () => {
+    const denied = browser('denied');
+    await expect(pushSubscription('AQID')).resolves.toBeNull();
+    expect(denied).not.toHaveBeenCalled();
+
+    const noKey = browser('granted');
+    await expect(pushSubscription(null)).resolves.toBeNull();
+    expect(noKey).not.toHaveBeenCalled();
+
+    vi.unstubAllGlobals();
+    await expect(pushSubscription('AQID')).resolves.toBeNull();
   });
 });

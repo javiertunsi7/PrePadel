@@ -5,6 +5,8 @@ import com.prepadel.pain.PainService;
 import com.prepadel.progress.AbandonmentRequest;
 import com.prepadel.progress.CompletionRequest;
 import com.prepadel.progress.ProgressService;
+import com.prepadel.reminder.ReminderRequest;
+import com.prepadel.reminder.ReminderService;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -33,9 +35,11 @@ public class PlayerController {
 	private final PlayerStateService stateService;
 	private final ProgressService progressService;
 	private final PainService painService;
+	private final ReminderService reminderService;
 
 	public PlayerController(PlayerService playerService, PlayerStateService stateService,
-			ProgressService progressService, PainService painService) {
+			ProgressService progressService, PainService painService, ReminderService reminderService) {
+		this.reminderService = reminderService;
 		this.playerService = playerService;
 		this.stateService = stateService;
 		this.progressService = progressService;
@@ -76,6 +80,13 @@ public class PlayerController {
 	@PostMapping("/me/abandonments")
 	public PlayerState abandon(@CurrentPlayer Player player, @Valid @RequestBody AbandonmentRequest request) {
 		progressService.abandon(player.getId(), request);
+		return stateService.stateOf(player);
+	}
+
+	/** Hora del próximo partido, para avisar 30 minutos antes aunque la app esté cerrada. */
+	@PostMapping("/me/reminder")
+	public PlayerState remind(@CurrentPlayer Player player, @Valid @RequestBody ReminderRequest request) {
+		reminderService.set(player.getId(), request);
 		return stateService.stateOf(player);
 	}
 
