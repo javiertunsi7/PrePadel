@@ -1,0 +1,12 @@
+# Lo que no hace falta para construir la imagen (y no debe viajar dentro).
+.git
+.github
+.claude
+docs
+**/node_modules
+frontend/dist
+frontend/dev-dist
+backend/target
+backend/data
+**/.env
+**/.env.*

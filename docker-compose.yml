@@ -1,0 +1,39 @@
+# PrePádel como en producción, pero en tu equipo: la imagen real y un PostgreSQL.
+#
+#   docker compose up --build      y abre http://localhost:8090
+#   docker compose down            para pararlo (los datos se conservan)
+#   docker compose down --volumes  para pararlo y borrar la base de datos
+#
+# El puerto 8090 evita chocar con el backend de desarrollo (8080).
+
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: prepadel
+      POSTGRES_USER: prepadel
+      # Contraseña solo para esta base de datos local de pruebas. En producción
+      # la pone el alojamiento y nunca se guarda en el repositorio.
+      POSTGRES_PASSWORD: prepadel-local
+    volumes:
+      - prepadel-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U prepadel -d prepadel"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  app:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_JDBC_URL: jdbc:postgresql://db:5432/prepadel
+      DATABASE_USER: prepadel
+      DATABASE_PASSWORD: prepadel-local
+    ports:
+      - "8090:8080"
+
+volumes:
+  prepadel-db:

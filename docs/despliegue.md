@@ -1,0 +1,94 @@
+# Desplegar PrePádel
+
+## Qué se despliega
+
+Dos piezas:
+
+- **Una imagen Docker** ([Dockerfile](../Dockerfile)) con un único servidor que sirve la web
+  y la API. No hay que alojar el frontend aparte.
+- **Una base de datos PostgreSQL**, mejor gestionada por el propio alojamiento (copias de
+  seguridad incluidas).
+
+La imagen se configura con tres variables de entorno. Si falta alguna, la app no arranca:
+
+| Variable | Ejemplo |
+| --- | --- |
+| `DATABASE_JDBC_URL` | `jdbc:postgresql://servidor:5432/prepadel` |
+| `DATABASE_USER` | `prepadel` |
+| `DATABASE_PASSWORD` | la que dé el alojamiento |
+
+Muchos alojamientos dan la conexión en una sola dirección del tipo
+`postgres://usuario:clave@servidor:5432/base`. Hay que partirla: la dirección pasa a ser
+`jdbc:postgresql://servidor:5432/base`, y el usuario y la clave van en sus variables.
+
+Otros datos que suele pedir el alojamiento:
+
+- **Puerto:** 8080. Si el alojamiento define la variable `PORT`, la app la respeta.
+- **Comprobación de salud:** `GET /actuator/health`. Responde `{"status":"UP"}` cuando la app
+  y su base de datos funcionan.
+- **Memoria:** probada con un límite de 512 MB: arranca en unos 12 segundos y ocupa unos
+  270 MB. Sin límite sube hasta unos 500 MB. No está probada con muchos jugadores a la vez.
+
+## Probarlo en tu equipo igual que en producción
+
+Con Docker Desktop abierto:
+
+```bash
+docker compose up --build
+```
+
+Abre <http://localhost:8090>. Es la imagen real con un PostgreSQL propio; no toca el backend
+de desarrollo ni sus datos. La primera vez tarda unos minutos en construirse.
+
+Para pararla y borrar esa base de datos de prueba:
+
+```bash
+docker compose down --volumes
+```
+
+## Pasos en el alojamiento
+
+Sirve cualquiera que construya una imagen desde un `Dockerfile` y ofrezca PostgreSQL.
+Elige una región de la Unión Europea: el registro de dolor es un dato de salud.
+
+1. Crea la base de datos PostgreSQL y apunta servidor, puerto, nombre, usuario y contraseña.
+2. Crea el servicio web a partir de este repositorio de GitHub (el `Dockerfile` está en la raíz).
+3. Define las tres variables de entorno de la tabla.
+4. Indica `/actuator/health` como comprobación de salud.
+5. Asigna el dominio. El HTTPS lo pone el alojamiento; la app instalable (PWA) no funciona sin él.
+6. Comprueba que `https://tu-dominio/actuator/health` responde `UP` y abre la web.
+
+La primera vez que arranca, la app crea sola las tablas y carga los ejercicios. En cada
+actualización aplica las migraciones nuevas antes de atender peticiones.
+
+## Actualizar
+
+Cada cambio en `main` pasa por los tests automáticos de GitHub
+([.github/workflows/ci.yml](../.github/workflows/ci.yml)): backend con H2 y con PostgreSQL,
+frontend, y construcción de la imagen. Si el alojamiento está conectado al repositorio,
+redespliega solo; conviene configurarlo para que espere a que esos tests pasen.
+
+## Sin Docker
+
+También se puede generar un único jar y ejecutarlo donde haya Java 25:
+
+```bash
+cd frontend && npm ci && npm run build
+cd ../backend && ./mvnw -Pweb package
+java -jar target/prepadel-backend-0.1.0-SNAPSHOT.jar --spring.profiles.active=prod
+```
+
+Las tres variables de entorno hacen falta igual.
+
+## Antes de dar el enlace a los clubes
+
+- [ ] Copias de seguridad de la base de datos activadas en el alojamiento.
+- [ ] Política de privacidad publicada: se guardan datos de salud.
+- [ ] Probado en un Android y un iPhone: instalar la app, hacer una rutina con voz y
+      repetirla en modo avión.
+- [ ] Decidido cómo se presenta el piloto mientras el contenido siga en borrador (la app ya
+      lo avisa en Perfil y en la galería de ejercicios).
+
+Sigue pendiente, y conviene antes de abrirla a más gente: un límite de altas por minuto en
+`POST /api/players` y la cuenta recuperable. Está en
+[movil-y-siguientes-pasos.md](movil-y-siguientes-pasos.md).

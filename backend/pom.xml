@@ -33,10 +33,26 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-validation</artifactId>
 		</dependency>
+		<!-- /actuator/health: lo que consulta el alojamiento para saber si la app esta viva -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-actuator</artifactId>
+		</dependency>
 
+		<!-- H2 para desarrollo y tests; PostgreSQL para produccion -->
 		<dependency>
 			<groupId>com.h2database</groupId>
 			<artifactId>h2</artifactId>
+			<scope>runtime</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.postgresql</groupId>
+			<artifactId>postgresql</artifactId>
+			<scope>runtime</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.flywaydb</groupId>
+			<artifactId>flyway-database-postgresql</artifactId>
 			<scope>runtime</scope>
 		</dependency>
 
@@ -70,5 +86,46 @@
 			</plugin>
 		</plugins>
 	</build>
+
+	<profiles>
+		<!--
+			Un solo desplegable: mete la web ya construida (frontend/dist) dentro del jar,
+			para que el mismo servidor sirva la app y la API.
+			  cd frontend && npm ci && npm run build
+			  cd ../backend && ./mvnw -Pweb package
+		-->
+		<profile>
+			<id>web</id>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-antrun-plugin</artifactId>
+						<executions>
+							<execution>
+								<id>copiar-frontend</id>
+								<phase>prepare-package</phase>
+								<goals>
+									<goal>run</goal>
+								</goals>
+								<configuration>
+									<target>
+										<available file="${project.basedir}/../frontend/dist/index.html" property="frontend.construido"/>
+										<fail unless="frontend.construido"
+											message="Falta la web construida: ejecuta 'npm ci' y 'npm run build' en frontend/ antes de empaquetar con -Pweb."/>
+										<!-- Se vacia antes para que no queden ficheros de una version anterior de la web. -->
+										<delete dir="${project.build.outputDirectory}/static"/>
+										<copy todir="${project.build.outputDirectory}/static">
+											<fileset dir="${project.basedir}/../frontend/dist"/>
+										</copy>
+									</target>
+								</configuration>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
 
 </project>

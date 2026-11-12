@@ -5,7 +5,9 @@ rutinas de 10 minutos para codo, hombro y rodilla.
 
 - **Backend:** Java 25 + Spring Boot 4 (`backend/`)
 - **Frontend:** React 19 + TypeScript + Vite, instalable en el móvil como PWA (`frontend/`)
-- **Tests:** JUnit + MockMvc en el backend, Vitest + Testing Library en el frontend
+- **Tests:** JUnit + MockMvc en el backend, Vitest + Testing Library en el frontend, y
+  GitHub Actions para pasarlos en cada cambio
+- **Producción:** una imagen Docker con un solo servidor (web + API) y PostgreSQL
 
 ## Qué hace el MVP
 
@@ -49,13 +51,29 @@ Abre <http://localhost:5173>. El frontend redirige `/api` al backend (puerto 808
 Los datos se guardan en `backend/data/` (base de datos H2 en fichero, fuera de git);
 bórrala para empezar de cero.
 
+## Como en producción
+
+Con Docker Desktop abierto, esto construye la imagen real y la arranca con su PostgreSQL:
+
+```bash
+docker compose up --build
+```
+
+Abre <http://localhost:8090>. En producción el mismo servidor sirve la web y la API, la base
+de datos es PostgreSQL y se configura con tres variables de entorno. La guía completa, con
+los pasos en el alojamiento, está en [docs/despliegue.md](docs/despliegue.md).
+
 ## Tests
 
 ```bash
-cd backend && ./mvnw test      # 31 tests: riesgo, avisos de dolor, contenido y API completa
+cd backend && ./mvnw test      # 40 tests: riesgo, avisos de dolor, contenido, API completa y servidor web
 cd frontend && npm test        # 256 tests: reproductor, sincronización offline, ilustraciones y pantallas
 cd frontend && npm run build   # comprobación de tipos + build de producción (PWA)
 ```
+
+GitHub pasa todo esto en cada cambio a `main` y en cada pull request
+([.github/workflows/ci.yml](.github/workflows/ci.yml)), repite los tests del backend contra
+PostgreSQL y construye la imagen Docker.
 
 Dos tests de contenido vigilan las reglas del producto cuando alguien edite las rutinas:
 todas duran entre 8 y 12 minutos y cada zona tiene su programa de 4 semanas.
@@ -69,6 +87,7 @@ backend/src/main/java/com/prepadel/
   risk/       perfil de riesgo orientativo
   pain/       registro de dolor y regla de "para y consulta"
   progress/   programa activo y rutinas completadas
+  web/        en producción, sirve la web ya construida junto a la API
 backend/src/main/resources/db/migration/
   V1__schema.sql          tablas
   V2__seed_content.sql    contenido inicial (borrador)

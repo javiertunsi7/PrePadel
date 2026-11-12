@@ -67,10 +67,11 @@ El backend no cambiaría: la API ya está separada.
    sirve para lanzar la validación con clubes. Los vídeos con el fisio siguen siendo lo que
    da credibilidad: se graban, se suben a Cloudflare Stream o Mux y basta con rellenar
    `exercise.video_url` para que sustituyan al dibujo en el reproductor y en la ficha.
-3. **Producción.** Hoy la base de datos es un fichero H2 pensado para desarrollo. Falta:
-   PostgreSQL (driver, módulo de Flyway para PostgreSQL y un perfil `prod`), servir el
-   frontend y la API bajo el mismo dominio con HTTPS, y copias de seguridad. El SQL de las
-   migraciones está escrito para ser compatible, pero no se ha probado contra PostgreSQL.
+3. **Producción.** La parte técnica está lista: imagen Docker con un solo servidor (web y
+   API), PostgreSQL probado con las mismas migraciones y tests automáticos en GitHub. Falta
+   lo que depende de una cuenta tuya: elegir alojamiento en la UE, crear la base de datos,
+   poner el dominio y activar las copias de seguridad. Los pasos están en
+   [despliegue.md](despliegue.md).
 4. **Cuenta recuperable.** El jugador se identifica con un token guardado en su móvil. Si
    cambia de móvil o borra los datos del navegador, pierde su historial. Antes de cobrar hay
    que ofrecer "guarda tu cuenta" con email (enlace mágico), sin obligar a registrarse al
