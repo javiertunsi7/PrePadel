@@ -1,7 +1,7 @@
 import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Route, Routes } from 'react-router';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { AppStore } from '../lib/store';
 import { fakeApi, registeredStore, renderApp } from '../test/fixtures';
 import { RoutineScreen } from './RoutineScreen';
@@ -130,6 +130,26 @@ describe('pantalla de rutina', () => {
     await user.click(screen.getByRole('button', { name: 'Salir' }));
     expect(await screen.findByText('Pantalla de inicio')).toBeInTheDocument();
     expect(api.send).not.toHaveBeenCalled();
+  });
+
+  it('salir en mitad de un ejercicio anota en cuál se dejó', async () => {
+    const user = userEvent.setup();
+    const api = fakeApi();
+    renderRoutine(await registeredStore(api), 'codo-semana-1');
+    await user.click(screen.getByRole('button', { name: 'Empezar' }));
+    await user.click(screen.getByRole('button', { name: 'Saltar al siguiente ejercicio' }));
+
+    await user.click(screen.getByRole('button', { name: 'Salir de la rutina' }));
+    await user.click(screen.getByRole('button', { name: 'Salir' }));
+
+    expect(await screen.findByText('Pantalla de inicio')).toBeInTheDocument();
+    await vi.waitFor(() =>
+      expect(api.send).toHaveBeenCalledWith(
+        'token-de-prueba',
+        '/me/abandonments',
+        expect.objectContaining({ routineSlug: 'codo-semana-1', exerciseSlug: expect.any(String) }),
+      ),
+    );
   });
 
   it('una rutina que no existe devuelve a inicio', async () => {

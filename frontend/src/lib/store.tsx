@@ -88,6 +88,16 @@ export class AppStore {
     this.enqueue({ kind: 'completion', id: newId(), routineSlug, completedAt: new Date().toISOString() });
   }
 
+  abandonRoutine(routineSlug: string, exerciseSlug: string): void {
+    this.enqueue({
+      kind: 'abandonment',
+      id: newId(),
+      routineSlug,
+      exerciseSlug,
+      abandonedAt: new Date().toISOString(),
+    });
+  }
+
   logPain(zone: string, score: number, context: PainContext = 'POST_MATCH'): void {
     this.enqueue({ kind: 'pain', id: newId(), zone, score, context, recordedAt: new Date().toISOString() });
   }

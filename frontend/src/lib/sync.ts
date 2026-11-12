@@ -9,7 +9,9 @@ import type { Content, Enrollment, PainContext, PlayerState } from './types';
 export type Mutation =
   | { kind: 'completion'; id: string; routineSlug: string; completedAt: string }
   | { kind: 'pain'; id: string; zone: string; score: number; context: PainContext; recordedAt: string }
-  | { kind: 'enroll'; id: string; programSlug: string };
+  | { kind: 'enroll'; id: string; programSlug: string }
+  // Salir de una rutina a medias: no cambia nada en la app, solo cuenta para saber dónde se abandona.
+  | { kind: 'abandonment'; id: string; routineSlug: string; exerciseSlug: string; abandonedAt: string };
 
 export function toRequest(mutation: Mutation): { path: string; body: unknown } {
   switch (mutation.kind) {
@@ -31,12 +33,24 @@ export function toRequest(mutation: Mutation): { path: string; body: unknown } {
       };
     case 'enroll':
       return { path: '/me/enrollment', body: { programSlug: mutation.programSlug } };
+    case 'abandonment':
+      return {
+        path: '/me/abandonments',
+        body: {
+          id: mutation.id,
+          routineSlug: mutation.routineSlug,
+          exerciseSlug: mutation.exerciseSlug,
+          abandonedAt: mutation.abandonedAt,
+        },
+      };
   }
 }
 
 /** Refleja la acción en el estado local sin esperar al servidor (mismas reglas que el backend). */
 export function applyOptimistic(state: PlayerState, mutation: Mutation, content: Content | null): PlayerState {
   switch (mutation.kind) {
+    case 'abandonment':
+      return state;
     case 'completion': {
       if (state.recentCompletions.some((completion) => completion.id === mutation.id)) {
         return state;

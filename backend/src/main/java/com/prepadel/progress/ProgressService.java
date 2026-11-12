@@ -42,11 +42,13 @@ public class ProgressService {
 	private final RoutineCompletionRepository completionRepository;
 	private final ProgramRepository programRepository;
 	private final RoutineRepository routineRepository;
+	private final RoutineAbandonmentRepository abandonmentRepository;
 	private final Clock clock;
 
 	public ProgressService(ProgramEnrollmentRepository enrollmentRepository,
 			RoutineCompletionRepository completionRepository, ProgramRepository programRepository,
-			RoutineRepository routineRepository, Clock clock) {
+			RoutineRepository routineRepository, RoutineAbandonmentRepository abandonmentRepository, Clock clock) {
+		this.abandonmentRepository = abandonmentRepository;
 		this.enrollmentRepository = enrollmentRepository;
 		this.completionRepository = completionRepository;
 		this.programRepository = programRepository;
@@ -91,6 +93,20 @@ public class ProgressService {
 		}
 		completionRepository.save(new RoutineCompletion(request.id(), playerId, request.routineSlug(), enrollmentId,
 				week, ClientTime.orNow(request.completedAt(), clock.instant())));
+	}
+
+	/** El jugador ha salido de una rutina a medias. No cambia su progreso: solo se anota dónde lo dejó. */
+	@Transactional
+	public void abandon(UUID playerId, AbandonmentRequest request) {
+		if (abandonmentRepository.existsById(request.id())) {
+			return; // reintento de un aviso que ya llegó
+		}
+		if (abandonmentRepository.countSteps(request.routineSlug(), request.exerciseSlug()) == 0) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+					"El ejercicio " + request.exerciseSlug() + " no es de la rutina " + request.routineSlug());
+		}
+		abandonmentRepository.save(new RoutineAbandonment(request.id(), playerId, request.routineSlug(),
+				request.exerciseSlug(), ClientTime.orNow(request.abandonedAt(), clock.instant())));
 	}
 
 	@Transactional(readOnly = true)

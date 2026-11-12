@@ -22,8 +22,8 @@ sociales, análisis de vídeo.
 
 **Pendiente y permitido** (única lista de trabajo; el detalle está en
 `docs/movil-y-siguientes-pasos.md`, sección 2): contenido validado por un fisio, vídeos,
-alojamiento, cuenta recuperable por email, RGPD, pagos,
-analítica de retención, editor o revisión de contenido para el fisio, app Android con Capacitor,
+alojamiento, cuenta recuperable por email, RGPD (hay borradores sin revisar en `docs/`), pagos,
+editor o revisión de contenido para el fisio, app Android con Capacitor,
 notificaciones con la app cerrada, pruebas de la app entera en navegador.
 
 **Regla.** Si lo que se pide no es una de las cinco funcionalidades ni está en la lista de
@@ -44,8 +44,8 @@ Dentro de una tarea:
 ## Reglas que no se rompen
 
 - **Rutinas como datos.** Ejercicios, duraciones y progresiones viven en tablas, no en código.
-  El contenido se cambia con una migración nueva (`V3__...sql`). `V1` y `V2` no se editan:
-  Flyway lo comprueba.
+  El contenido se cambia con una migración nueva (`V4__...sql`). Las ya existentes (`V1` a
+  `V3`) no se editan: Flyway lo comprueba.
 - **Offline first.** Todo lo que el jugador hace debe funcionar sin cobertura: pasa por la
   cola de `frontend/src/lib/store.tsx` y `sync.ts`.
 - **Manos libres.** Voz, pitidos, cuenta atrás gigante, letra y botones grandes.
@@ -63,15 +63,19 @@ Dentro de una tarea:
 backend/src/main/java/com/prepadel/
   content/   catálogo de solo lectura             GET /api/content
   player/    cuestionario, token, estado          POST /api/players, GET|DELETE /api/me,
-             (PlayerController tiene toda la API)  POST /api/me/{enrollment,completions,pain}
+             (PlayerController tiene la API        POST /api/me/{enrollment,completions,
+              del jugador)                              abandonments,pain}
   risk/      RiskProfileService: pesos del perfil de riesgo
   pain/      PainRules, PainAlertService; umbrales prepadel.pain.* en application.properties
-  progress/  programa activo y rutinas completadas
+  progress/  programa activo, rutinas completadas y abandonadas
+  stats/     panel de retención, solo totales     GET /api/admin/{panel,stats}
+             (contraseña prepadel.admin.password; vacía = 404)
              RegistrationRateLimiter: tope de altas por IP y hora (prepadel.rate-limit.*)
   web/       en producción sirve la web construida junto a la API;
              SecurityHeadersFilter: cabeceras de seguridad y CSP (si la web carga algo de
              otro dominio, hay que añadirlo ahí)
-backend/src/main/resources/db/migration/   V1 esquema, V2 contenido inicial
+backend/src/main/resources/db/migration/   V1 esquema, V2 contenido inicial,
+                                           V3 rutinas abandonadas
 
 frontend/src/
   App.tsx         rutas: / , /programas[/:slug], /dolor, /perfil[/ejercicios], /rutina/:slug, /bienvenida

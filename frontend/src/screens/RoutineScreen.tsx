@@ -245,7 +245,16 @@ function RoutineRunner({ routine }: { routine: Routine }) {
             >
               Seguir con la rutina
             </button>
-            <button className="btn btn--ghost btn--block" onClick={goBack}>
+            <button
+              className="btn btn--ghost btn--block"
+              onClick={() => {
+                // La cuenta atrás inicial todavía no es un ejercicio: ahí no se anota nada.
+                if (playback.phase !== 'ready') {
+                  store.abandonRoutine(routine.slug, routine.steps[playback.stepIndex].exerciseSlug);
+                }
+                goBack();
+              }}
+            >
               Salir
             </button>
           </div>

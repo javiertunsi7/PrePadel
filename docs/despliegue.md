@@ -16,6 +16,7 @@ La imagen se configura con tres variables de entorno. Si falta alguna, la app no
 | `DATABASE_JDBC_URL` | `jdbc:postgresql://servidor:5432/prepadel` |
 | `DATABASE_USER` | `prepadel` |
 | `DATABASE_PASSWORD` | la que dé el alojamiento |
+| `PREPADEL_ADMIN_PASSWORD` | opcional: contraseña larga y aleatoria para el panel de retención (`/api/admin/panel`; el usuario da igual). Sin ella el panel no existe |
 
 Muchos alojamientos dan la conexión en una sola dirección del tipo
 `postgres://usuario:clave@servidor:5432/base`. Hay que partirla: la dirección pasa a ser

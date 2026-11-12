@@ -32,6 +32,8 @@ services:
       DATABASE_JDBC_URL: jdbc:postgresql://db:5432/prepadel
       DATABASE_USER: prepadel
       DATABASE_PASSWORD: prepadel-local
+      # Panel de retención en /api/admin/panel; vacío = no existe.
+      PREPADEL_ADMIN_PASSWORD: ${PREPADEL_ADMIN_PASSWORD:-}
     ports:
       - "8090:8080"
 

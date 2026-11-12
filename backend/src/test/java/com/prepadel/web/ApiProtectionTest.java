@@ -74,6 +74,12 @@ class ApiProtectionTest {
 			.andExpect(header().string("Strict-Transport-Security", "max-age=31536000"));
 	}
 
+	@Test
+	void withoutAnAdminPasswordThePanelDoesNotExist() throws Exception {
+		mvc.perform(get("/api/admin/panel")).andExpect(status().isNotFound());
+		mvc.perform(get("/api/admin/stats")).andExpect(status().isNotFound());
+	}
+
 	private static MockHttpServletRequestBuilder registration(String ip) {
 		return post("/api/players").contentType(MediaType.APPLICATION_JSON).content("""
 				{"age": 47, "weeklyHours": 4, "level": "INTERMEDIATE",

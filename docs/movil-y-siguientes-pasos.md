@@ -77,9 +77,12 @@ El backend no cambiaría: la API ya está separada.
    que ofrecer "guarda tu cuenta" con email (enlace mágico), sin obligar a registrarse al
    principio.
 5. **RGPD.** El dolor es dato de salud. Ya hay consentimiento explícito, datos sin nombre ni
-   email y borrado completo desde Perfil. Falta: política de privacidad, registro de
-   actividades de tratamiento, cifrado de la base de datos en reposo y contrato de encargado
-   con el proveedor de alojamiento.
+   email y borrado completo desde Perfil. Hay borradores de la política de privacidad
+   ([privacidad-borrador.md](privacidad-borrador.md)) y del registro de actividades
+   ([registro-actividades-borrador.md](registro-actividades-borrador.md)), sin revisar por un
+   profesional; la lista de lo que falta está al final del primero. Sigue pendiente: esa
+   revisión, enlazar la política desde la app, cifrado de la base de datos en reposo y
+   contrato de encargado con el proveedor de alojamiento.
 6. **Protección de la API (hecho).** `POST /api/players` admite 20 jugadores nuevos por
    conexión y hora (`prepadel.rate-limit.registrations-per-hour`) y después responde 429.
    Todas las respuestas llevan cabeceras de seguridad, entre ellas una política de contenido
@@ -87,7 +90,10 @@ El backend no cambiaría: la API ya está separada.
    hay más de un servidor, habrá que llevarla a la base de datos o al proxy.
 7. **Pagos.** El modelo freemium (calentamiento gratis, programas y seguimiento de pago)
    necesita RevenueCat cuando exista la app nativa. Hoy todo está abierto.
-8. **Analítica.** PostHog o similar para ver qué rutinas se terminan y dónde se abandona.
+8. **Analítica (hecho, sin servicios externos).** Panel propio en `/api/admin/panel`, con la
+   contraseña de `PREPADEL_ADMIN_PASSWORD`: jugadores activos, cuántos vuelven en su segunda
+   semana y en qué ejercicio se sale de las rutinas. El abandono se anota cuando el jugador
+   pulsa "Salir" en mitad de una rutina; cerrar la app sin más no se registra.
 9. **Editor de contenido.** Hoy las rutinas se cambian con migraciones SQL. Un panel de
    administración permitiría al fisio editarlas sin tocar código.
 

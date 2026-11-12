@@ -2,6 +2,7 @@ package com.prepadel.player;
 
 import com.prepadel.pain.PainRequest;
 import com.prepadel.pain.PainService;
+import com.prepadel.progress.AbandonmentRequest;
 import com.prepadel.progress.CompletionRequest;
 import com.prepadel.progress.ProgressService;
 
@@ -69,6 +70,12 @@ public class PlayerController {
 	@PostMapping("/me/completions")
 	public PlayerState complete(@CurrentPlayer Player player, @Valid @RequestBody CompletionRequest request) {
 		progressService.complete(player.getId(), request);
+		return stateService.stateOf(player);
+	}
+
+	@PostMapping("/me/abandonments")
+	public PlayerState abandon(@CurrentPlayer Player player, @Valid @RequestBody AbandonmentRequest request) {
+		progressService.abandon(player.getId(), request);
 		return stateService.stateOf(player);
 	}
 
