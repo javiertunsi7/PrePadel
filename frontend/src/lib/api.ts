@@ -19,10 +19,21 @@ export class NetworkError extends Error {
   }
 }
 
+/**
+ * El servidor pide esperar (429). Para la cola es como estar sin conexión: se
+ * reintenta más tarde. Tiene nombre propio para poder decírselo al jugador.
+ */
+export class TooManyRequestsError extends NetworkError {
+  constructor() {
+    super('Demasiadas peticiones (429)');
+    this.name = 'TooManyRequestsError';
+  }
+}
+
 // Vacío en web (mismo origen). En la app nativa (Capacitor) será la URL pública de la API.
 const BASE_URL: string = import.meta.env.VITE_API_URL ?? '';
 
-const RETRY_LATER = new Set([408, 429]);
+const TOO_MANY_REQUESTS = 429;
 
 async function request<T>(path: string, init: RequestInit = {}, token?: string): Promise<T> {
   let response: Response;
@@ -37,7 +48,10 @@ async function request<T>(path: string, init: RequestInit = {}, token?: string):
   } catch {
     throw new NetworkError();
   }
-  if (response.status >= 500 || RETRY_LATER.has(response.status)) {
+  if (response.status === TOO_MANY_REQUESTS) {
+    throw new TooManyRequestsError();
+  }
+  if (response.status >= 500 || response.status === 408) {
     throw new NetworkError(`Servidor no disponible (${response.status})`);
   }
   if (!response.ok) {

@@ -2,7 +2,7 @@ import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Route, Routes } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
-import { NetworkError } from '../lib/api';
+import { NetworkError, TooManyRequestsError } from '../lib/api';
 import { AppStore } from '../lib/store';
 import { fakeApi, registeredStore, renderApp } from '../test/fixtures';
 import { Onboarding } from './Onboarding';
@@ -102,6 +102,22 @@ describe('cuestionario inicial', () => {
 
     await user.click(screen.getByRole('button', { name: 'Crear mi plan' }));
     expect(await screen.findByRole('heading', { name: 'Tu punto de partida' })).toBeInTheDocument();
+  });
+
+  it('si el servidor pide esperar, lo dice en vez de culpar a la conexión', async () => {
+    const user = userEvent.setup();
+    const register = vi
+      .fn(fakeApi().register)
+      .mockRejectedValueOnce(new TooManyRequestsError());
+    renderOnboarding(new AppStore(fakeApi({ register })));
+
+    await answerQuestions(user);
+    await user.click(screen.getByRole('checkbox'));
+    await user.click(screen.getByRole('button', { name: 'Crear mi plan' }));
+
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent('Espera un rato');
+    expect(alert).not.toHaveTextContent('No hay conexión');
   });
 
   it('quien ya tiene plan va directo a inicio', async () => {

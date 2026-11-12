@@ -4,7 +4,7 @@ import { RiskChip } from '../components/Bits';
 import { BackIcon, PainIcon, ProgramsIcon, TodayIcon, ZoneIcon } from '../components/Icons';
 import { Mascot } from '../components/Mascot';
 import { PainScale } from '../components/PainScale';
-import { ApiError } from '../lib/api';
+import { ApiError, TooManyRequestsError } from '../lib/api';
 import { DISCLAIMER, painRuleText } from '../lib/copy';
 import { useScrollToTop } from '../lib/hooks';
 import { useAppState, useStore } from '../lib/store';
@@ -62,7 +62,9 @@ export function Onboarding() {
       setError(
         caught instanceof ApiError
           ? caught.message
-          : 'No hay conexión. La primera vez necesitas internet para crear tu plan.',
+          : caught instanceof TooManyRequestsError
+            ? 'Se han creado muchos planes desde esta conexión. Espera un rato y vuelve a intentarlo.'
+            : 'No hay conexión. La primera vez necesitas internet para crear tu plan.',
       );
     } finally {
       setSending(false);
