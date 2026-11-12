@@ -80,8 +80,11 @@ El backend no cambiaría: la API ya está separada.
    email y borrado completo desde Perfil. Falta: política de privacidad, registro de
    actividades de tratamiento, cifrado de la base de datos en reposo y contrato de encargado
    con el proveedor de alojamiento.
-6. **Protección de la API.** Límite de peticiones en `POST /api/players` (hoy cualquiera
-   puede crear jugadores sin tope) y cabeceras de seguridad.
+6. **Protección de la API (hecho).** `POST /api/players` admite 20 jugadores nuevos por
+   conexión y hora (`prepadel.rate-limit.registrations-per-hour`) y después responde 429.
+   Todas las respuestas llevan cabeceras de seguridad, entre ellas una política de contenido
+   que solo deja cargar lo que sirve la propia app. La cuenta vive en memoria: si algún día
+   hay más de un servidor, habrá que llevarla a la base de datos o al proxy.
 7. **Pagos.** El modelo freemium (calentamiento gratis, programas y seguimiento de pago)
    necesita RevenueCat cuando exista la app nativa. Hoy todo está abierto.
 8. **Analítica.** PostHog o similar para ver qué rutinas se terminan y dónde se abandona.

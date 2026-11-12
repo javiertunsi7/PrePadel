@@ -22,7 +22,7 @@ sociales, análisis de vídeo.
 
 **Pendiente y permitido** (única lista de trabajo; el detalle está en
 `docs/movil-y-siguientes-pasos.md`, sección 2): contenido validado por un fisio, vídeos,
-alojamiento, cuenta recuperable por email, RGPD, límite de peticiones en la API, pagos,
+alojamiento, cuenta recuperable por email, RGPD, pagos,
 analítica de retención, editor o revisión de contenido para el fisio, app Android con Capacitor,
 notificaciones con la app cerrada, pruebas de la app entera en navegador.
 
@@ -67,7 +67,10 @@ backend/src/main/java/com/prepadel/
   risk/      RiskProfileService: pesos del perfil de riesgo
   pain/      PainRules, PainAlertService; umbrales prepadel.pain.* en application.properties
   progress/  programa activo y rutinas completadas
-  web/       en producción sirve la web construida junto a la API
+             RegistrationRateLimiter: tope de altas por IP y hora (prepadel.rate-limit.*)
+  web/       en producción sirve la web construida junto a la API;
+             SecurityHeadersFilter: cabeceras de seguridad y CSP (si la web carga algo de
+             otro dominio, hay que añadirlo ahí)
 backend/src/main/resources/db/migration/   V1 esquema, V2 contenido inicial
 
 frontend/src/
