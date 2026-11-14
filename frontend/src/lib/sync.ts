@@ -1,4 +1,5 @@
-import type { Content, Enrollment, PainContext, PlayerState, PushTarget } from './types';
+import { highPainMessage } from './copy';
+import type { Content, Enrollment, PainAlert, PainContext, PlayerState, PushTarget } from './types';
 
 /**
  * Lo que el jugador hace en la app. Cada acción se aplica en local al instante
@@ -102,6 +103,7 @@ export function applyOptimistic(state: PlayerState, mutation: Mutation, content:
         ],
         // El nivel de riesgo lo recalcula el servidor al sincronizar.
         risk: state.risk.map((risk) => (risk.zone === mutation.zone ? { ...risk, lastPain: mutation.score } : risk)),
+        alerts: alertsAfterPain(state.alerts, mutation.zone, mutation.score, content),
       };
     }
     case 'enroll': {
@@ -125,6 +127,24 @@ export function applyOptimistic(state: PlayerState, mutation: Mutation, content:
       };
     }
   }
+}
+
+/**
+ * "Para y consulta" depende solo del último registro de la zona (como en `PainAlertService`), así que
+ * pausa o reanuda el programa al momento. El aviso de dolor que dura días lo recalcula el servidor.
+ */
+function alertsAfterPain(alerts: PainAlert[], zone: string, score: number, content: Content | null): PainAlert[] {
+  if (!content) {
+    return alerts;
+  }
+  if (score < content.painRule.consultScore) {
+    return alerts.filter((alert) => alert.zone !== zone || alert.kind !== 'HIGH_PAIN');
+  }
+  const name = content.zones.find((candidate) => candidate.code === zone)?.name ?? zone;
+  return [
+    ...alerts.filter((alert) => alert.zone !== zone),
+    { zone, kind: 'HIGH_PAIN', message: highPainMessage(name, score) },
+  ];
 }
 
 /** Una sesión más del programa; al llegar a las sesiones de la semana se abre la siguiente. */

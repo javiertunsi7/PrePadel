@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
-import { AlertCard, SessionDots } from '../components/Bits';
+import { AlertCard, ProgramPaused, SessionDots } from '../components/Bits';
 import { CheckIcon, ChevronIcon, ClockIcon, PainIcon, ZoneIcon } from '../components/Icons';
 import { Mascot } from '../components/Mascot';
-import { completedToday, formatMinutes, formatTime, sameDay, streakDays } from '../lib/derive';
+import { completedToday, formatMinutes, formatTime, pausingAlert, sameDay, streakDays } from '../lib/derive';
 import { useNow } from '../lib/hooks';
 import {
   MATCH_OVER_MS,
@@ -142,6 +142,8 @@ function ProgramToday({ content, me, doneToday }: { content: Content; me: Player
       </Link>
       {enrollment.completed ? (
         <p className="done-note">¡Programa completado! Puedes repetirlo o reforzar otra zona.</p>
+      ) : pausingAlert(me.alerts, program.zone) ? (
+        <ProgramPaused />
       ) : sessionDoneToday ? (
         <p className="done-note">
           <CheckIcon size={18} /> Sesión de hoy hecha. Mañana más.

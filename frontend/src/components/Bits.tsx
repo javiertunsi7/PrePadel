@@ -1,3 +1,5 @@
+import { Link } from 'react-router';
+import { PROGRAM_PAUSED } from '../lib/copy';
 import { RISK_LABEL } from '../lib/zones';
 import type { PainAlert, RiskLevel } from '../lib/types';
 import { Mascot } from './Mascot';
@@ -8,6 +10,20 @@ export function AlertCard({ alert }: { alert: PainAlert }) {
     <div className="alert" role="alert">
       <Mascot mood="worried" size={56} />
       <p>{alert.message}</p>
+    </div>
+  );
+}
+
+/** En lugar de "Empezar sesión" mientras el dolor de la zona pida parar y consultar. */
+export function ProgramPaused() {
+  return (
+    <div className="paused">
+      <p>
+        <strong>Programa en pausa.</strong> {PROGRAM_PAUSED}
+      </p>
+      <Link to="/dolor" className="btn btn--secondary btn--block">
+        Registrar dolor
+      </Link>
     </div>
   );
 }

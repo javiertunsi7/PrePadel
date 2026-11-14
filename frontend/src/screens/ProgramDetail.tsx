@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { Link, Navigate, useParams } from 'react-router';
-import { SessionDots } from '../components/Bits';
+import { ProgramPaused, SessionDots } from '../components/Bits';
 import { BackIcon, CheckIcon, ZoneIcon } from '../components/Icons';
-import { completedToday, formatMinutes, formatSeconds } from '../lib/derive';
+import { completedToday, formatMinutes, formatSeconds, pausingAlert } from '../lib/derive';
 import { useAppState, useStore } from '../lib/store';
 import { zoneVars } from '../lib/zones';
 
@@ -101,7 +101,9 @@ export function ProgramDetail() {
 
       <div className="sticky-cta">
         {active && !active.completed ? (
-          sessionDoneToday ? (
+          pausingAlert(me.alerts, program.zone) ? (
+            <ProgramPaused />
+          ) : sessionDoneToday ? (
             <p className="done-note">
               <CheckIcon size={18} /> Sesión de hoy hecha. Mañana más.
             </p>

@@ -22,6 +22,10 @@ function completion(routineSlug: string, id = 'c-1'): Mutation {
   return { kind: 'completion', id, routineSlug, completedAt: '2026-11-10T18:00:00Z' };
 }
 
+function pain(zone: string, score: number): Mutation {
+  return { kind: 'pain', id: 'p-1', zone, score, context: 'CHECK_IN', recordedAt: '2026-11-10T20:00:00Z' };
+}
+
 describe('rutinas terminadas, aplicadas en local', () => {
   it('una sesión del programa suma en la semana en curso', () => {
     const next = applyOptimistic(playerState({ enrollment: enrollment() }), completion('codo-semana-1'), content);
@@ -78,6 +82,31 @@ describe('dolor y programas, aplicados en local', () => {
     expect(next.pain[0]).toMatchObject({ zone: 'KNEE', score: 4 });
     expect(next.risk.find((risk) => risk.zone === 'KNEE')?.lastPain).toBe(4);
     expect(next.risk.find((risk) => risk.zone === 'ELBOW')?.lastPain).toBe(6);
+  });
+
+  it('un dolor que llega al umbral pide parar y consultar sin esperar al servidor', () => {
+    const state = playerState({
+      alerts: [{ zone: 'ELBOW', kind: 'PERSISTENT_PAIN', message: 'Codo: llevas días con molestias.' }],
+    });
+
+    const next = applyOptimistic(state, pain('ELBOW', 7), content);
+
+    expect(next.alerts).toEqual([
+      {
+        zone: 'ELBOW',
+        kind: 'HIGH_PAIN',
+        message: 'Codo: dolor de 7/10. Para el programa y consulta con un fisioterapeuta o médico antes de seguir.',
+      },
+    ]);
+  });
+
+  it('un dolor por debajo del umbral quita ese aviso y deja los demás al servidor', () => {
+    const lingering = { zone: 'KNEE', kind: 'PERSISTENT_PAIN', message: 'Rodilla: llevas días con molestias.' } as const;
+    const state = playerState({
+      alerts: [{ zone: 'ELBOW', kind: 'HIGH_PAIN', message: 'Codo: dolor de 8/10.' }, lingering],
+    });
+
+    expect(applyOptimistic(state, pain('ELBOW', 6), content).alerts).toEqual([lingering]);
   });
 
   it('empezar un programa coloca al jugador en la primera sesión de la semana 1', () => {

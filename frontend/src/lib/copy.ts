@@ -17,6 +17,18 @@ export function painRuleText(content: Content): string {
   return `Si el dolor llega a ${consultScore}/10, o se mantiene en ${persistentScore}/10 o más durante ${persistentDays} días, para y consulta con un fisioterapeuta o médico.`;
 }
 
+/** El mismo aviso de "para y consulta" que da el servidor, para mostrarlo al momento aunque no haya cobertura. */
+export function highPainMessage(zoneName: string, score: number): string {
+  return `${zoneName}: dolor de ${score}/10. Para el programa y consulta con un fisioterapeuta o médico antes de seguir.`;
+}
+
+/** Programa en pausa por ese aviso: qué hacer para seguir. */
+export const PROGRAM_PAUSED =
+  'Consulta con un fisioterapeuta o médico. Cuando el dolor baje, regístralo y podrás seguir donde lo dejaste.';
+
+/** Rutina de una zona con el programa en pausa: se puede hacer, pero solo si el jugador lo confirma. */
+export const PAUSED_ROUTINE_QUESTION = 'Con ese dolor lo recomendable es no hacerla. ¿Quieres empezar igualmente?';
+
 /** Quién ha validado los ejercicios; mientras nadie lo haya hecho, se dice claramente. */
 export function reviewText(content: Content): string {
   const { status, reviewerName, reviewerCredentials } = content.review;
