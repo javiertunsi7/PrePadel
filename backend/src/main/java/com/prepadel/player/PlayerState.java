@@ -21,6 +21,7 @@ import com.prepadel.risk.ZoneRisk;
  * @param recentCompletions  rutinas terminadas en las últimas semanas, la más reciente primero
  * @param pain               registros de dolor de los últimos meses, el más reciente primero
  * @param alerts             avisos de "para y consulta"
+ * @param programPain        dolor de la zona del programa activo, para su resumen al terminarlo; null sin programa
  */
 public record PlayerState(
 		Profile profile,
@@ -29,7 +30,15 @@ public record PlayerState(
 		EnrollmentProgress enrollment,
 		List<Completion> recentCompletions,
 		List<Pain> pain,
-		List<PainAlert> alerts) {
+		List<PainAlert> alerts,
+		ProgramPain programPain) {
+
+	/**
+	 * El último registro de la zona antes de empezar el programa y el último desde entonces (null si no
+	 * hay). Van aparte de {@code pain} porque pueden ser más antiguos que los meses que trae esa lista.
+	 */
+	public record ProgramPain(Pain beforeStart, Pain latest) {
+	}
 
 	public record Profile(int age, int weeklyHours, SkillLevel level, Instant createdAt) {
 
