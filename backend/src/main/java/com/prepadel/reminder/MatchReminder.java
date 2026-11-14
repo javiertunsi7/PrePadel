@@ -1,5 +1,6 @@
 package com.prepadel.reminder;
 
+import java.io.Serializable;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -7,13 +8,22 @@ import java.util.UUID;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
+import jakarta.persistence.IdClass;
 
-/** El próximo partido de un jugador y a dónde mandarle el aviso (la suscripción de su móvil). */
+/** Un partido de un jugador y a dónde mandarle el aviso (la suscripción de su móvil). */
 @Entity
+@IdClass(MatchReminder.Key.class)
 public class MatchReminder {
+
+	/** Un jugador puede tener varios partidos; el id de cada uno lo pone su móvil. */
+	public record Key(UUID playerId, UUID id) implements Serializable {
+	}
 
 	@Id
 	private UUID playerId;
+
+	@Id
+	private UUID id;
 
 	private String endpoint;
 
@@ -33,9 +43,10 @@ public class MatchReminder {
 	protected MatchReminder() {
 	}
 
-	public MatchReminder(UUID playerId, String endpoint, String p256dh, String auth, Instant matchAt, boolean weekly,
-			ZoneId zone) {
+	public MatchReminder(UUID playerId, UUID id, String endpoint, String p256dh, String auth, Instant matchAt,
+			boolean weekly, ZoneId zone) {
 		this.playerId = playerId;
+		this.id = id;
 		schedule(endpoint, p256dh, auth, matchAt, weekly, zone);
 	}
 
@@ -70,6 +81,10 @@ public class MatchReminder {
 
 	public UUID getPlayerId() {
 		return playerId;
+	}
+
+	public UUID getId() {
+		return id;
 	}
 
 	public String getEndpoint() {

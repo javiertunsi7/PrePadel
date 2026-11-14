@@ -1,6 +1,10 @@
 package com.prepadel.player;
 
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.List;
 import java.util.UUID;
 
 import com.jayway.jsonpath.JsonPath;
@@ -209,6 +213,19 @@ class PlayerJourneyApiTest {
 			.contentType(MediaType.APPLICATION_JSON)
 			.content("{\"id\": \"%s\", \"zone\": \"KNEE\", \"score\": 4}".formatted(UUID.randomUUID())))
 			.andExpect(status().isOk());
+		// Juega dos días por semana: los dos partidos semanales salen en la descarga.
+		Instant thursday = Instant.now().plus(Duration.ofDays(3)).truncatedTo(ChronoUnit.SECONDS);
+		Instant tuesday = Instant.now().plus(Duration.ofDays(1)).truncatedTo(ChronoUnit.SECONDS);
+		for (Instant matchAt : List.of(thursday, tuesday)) {
+			mvc.perform(post("/api/me/matches").header(HttpHeaders.AUTHORIZATION, bearer(token))
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("""
+						{"id": "%s", "matchAt": "%s", "weekly": true, "timeZone": "Europe/Madrid",
+						 "subscription": {"endpoint": "https://fcm.googleapis.com/fcm/send/movil",
+						                  "p256dh": "clave", "auth": "secreto"}}
+						""".formatted(UUID.randomUUID(), matchAt)))
+				.andExpect(status().isOk());
+		}
 
 		mvc.perform(get("/api/me/export").header(HttpHeaders.AUTHORIZATION, bearer(token)))
 			.andExpect(status().isOk())
@@ -220,7 +237,12 @@ class PlayerJourneyApiTest {
 			.andExpect(jsonPath("$.pain[3].zone").value("KNEE"))
 			.andExpect(jsonPath("$.programs[0].program").value("codo-de-padel"))
 			.andExpect(jsonPath("$.completedRoutines").isArray())
-			.andExpect(jsonPath("$.nextMatch").isEmpty())
+			.andExpect(jsonPath("$.matches", hasSize(2)))
+			.andExpect(jsonPath("$.matches[0].matchAt").value(tuesday.toString()))
+			.andExpect(jsonPath("$.matches[1].matchAt").value(thursday.toString()))
+			.andExpect(jsonPath("$.matches[1].weekly").value(true))
+			.andExpect(jsonPath("$.matches[1].timeZone").value("Europe/Madrid"))
+			.andExpect(jsonPath("$.matches[0].endpoint").doesNotExist())
 			.andExpect(jsonPath("$.tokenHash").doesNotExist());
 
 		mvc.perform(get("/api/me/export")).andExpect(status().isUnauthorized());

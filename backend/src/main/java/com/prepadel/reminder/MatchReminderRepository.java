@@ -6,7 +6,7 @@ import java.util.UUID;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface MatchReminderRepository extends JpaRepository<MatchReminder, UUID> {
+public interface MatchReminderRepository extends JpaRepository<MatchReminder, MatchReminder.Key> {
 
 	/** Avisos sin enviar de partidos que empiezan dentro de ese tramo. */
 	List<MatchReminder> findBySentAtIsNullAndMatchAtGreaterThanAndMatchAtLessThanEqual(Instant after, Instant until);
@@ -15,5 +15,7 @@ public interface MatchReminderRepository extends JpaRepository<MatchReminder, UU
 	List<MatchReminder> findByWeeklyTrueAndMatchAtLessThanEqual(Instant now);
 
 	long deleteByWeeklyFalseAndMatchAtLessThan(Instant before);
+
+	long countByPlayerId(UUID playerId);
 
 }

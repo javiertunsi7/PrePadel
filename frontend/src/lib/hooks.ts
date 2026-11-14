@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { msUntilReminder, notify } from './reminder';
+import { notify, pendingReminders } from './reminder';
 import { useAppState } from './store';
 
 /** La hora actual, refrescada cada cierto tiempo para que la pantalla no se quede vieja. */
@@ -59,20 +59,15 @@ export function useWakeLock(active: boolean): void {
   }, [active]);
 }
 
-/** Programa el aviso de calentamiento 30 minutos antes del partido. */
+/** Programa el aviso de calentamiento 30 minutos antes de cada partido. */
 export function useMatchReminder(): void {
-  const { matchAt } = useAppState();
+  const { matches } = useAppState();
   useEffect(() => {
-    if (!matchAt) {
-      return;
-    }
-    const delay = msUntilReminder(new Date(matchAt), new Date());
-    if (delay === null) {
-      return;
-    }
-    const id = window.setTimeout(() => {
-      void notify('Toca calentar', 'Tu partido empieza en 30 minutos. Diez minutos de calentamiento y a la pista.');
-    }, delay);
-    return () => window.clearTimeout(id);
-  }, [matchAt]);
+    const timers = pendingReminders(matches, new Date()).map((delay) =>
+      window.setTimeout(() => {
+        void notify('Toca calentar', 'Tu partido empieza en 30 minutos. Diez minutos de calentamiento y a la pista.');
+      }, delay),
+    );
+    return () => timers.forEach((timer) => window.clearTimeout(timer));
+  }, [matches]);
 }

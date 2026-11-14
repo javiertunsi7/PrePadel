@@ -5,15 +5,8 @@ import { CheckIcon, ChevronIcon, ClockIcon, PainIcon, ZoneIcon } from '../compon
 import { Mascot } from '../components/Mascot';
 import { completedToday, formatMinutes, formatTime, sameDay, streakDays } from '../lib/derive';
 import { useNow } from '../lib/hooks';
-import {
-  MATCH_OVER_MS,
-  matchMoment,
-  nextOccurrence,
-  nextWeeklyMatch,
-  pushSubscription,
-  reminderTime,
-} from '../lib/reminder';
-import { useAppState, useStore } from '../lib/store';
+import { MAX_MATCHES, matchMoment, nextOccurrence, pushSubscription, reminderTime } from '../lib/reminder';
+import { useAppState, useStore, type Match } from '../lib/store';
 import type { Content, PlayerState, Routine } from '../lib/types';
 import { zoneVars } from '../lib/zones';
 
@@ -155,124 +148,200 @@ function ProgramToday({ content, me, doneToday }: { content: Content; me: Player
   );
 }
 
-/** Recordatorio ligado al partido: aviso 30 minutos antes de la hora que marca el jugador. */
+/** Recordatorio ligado al partido: aviso 30 minutos antes de cada partido que marca el jugador. */
 function MatchCard({ now }: { now: Date }) {
   const store = useStore();
-  const { matchAt, matchOptions, content } = useAppState();
-  const [time, setTime] = useState('');
-  const [weekly, setWeekly] = useState(false);
-  const match = matchAt ? new Date(matchAt) : null;
-  const moment = match ? matchMoment(match, now) : null;
+  const { matches } = useAppState();
+  const [adding, setAdding] = useState(false);
 
-  // Partido jugado: el semanal pasa a la semana que viene; el suelto se quita.
-  const finish = () => {
-    if (match && matchOptions.weekly) {
-      const afterThisOne = new Date(match.getTime() + MATCH_OVER_MS);
-      store.nextWeekMatch(nextWeeklyMatch(match, afterThisOne).toISOString());
-    } else {
-      store.setMatch(null);
-    }
-  };
-
+  // Partidos que ya quedan atrás: el semanal pasa a la semana que viene; el suelto se quita.
   useEffect(() => {
-    if (moment !== 'over' || !matchAt) {
-      return;
-    }
-    if (matchOptions.weekly) {
-      store.nextWeekMatch(nextWeeklyMatch(new Date(matchAt), now).toISOString());
-    } else {
-      store.setMatch(null);
-    }
-  }, [moment, matchAt, matchOptions.weekly, now, store]);
+    store.settleMatches(now);
+  }, [matches, now, store]);
 
-  if (!match || moment === 'over') {
-    return (
-      <form
-        className="card match"
-        onSubmit={(event) => {
-          event.preventDefault();
-          if (!time) {
-            return;
-          }
-          const matchAt = nextOccurrence(time, new Date()).toISOString();
-          store.setMatch(matchAt, weekly);
-          // Pide permiso y, si el móvil lo admite, deja el aviso también en el servidor (app cerrada).
-          void pushSubscription(content?.pushPublicKey).then((subscription) => {
-            if (subscription) {
-              store.remindWhenClosed(matchAt, subscription);
-            }
-          });
-        }}
-      >
-        <label htmlFor="match-time" className="row__text">
-          <span className="eyebrow">¿A qué hora juegas?</span>
-          <strong>Te aviso 30 min antes para calentar</strong>
-        </label>
-        <div className="match__row">
-          <input
-            id="match-time"
-            className="input"
-            type="time"
-            value={time}
-            onChange={(event) => setTime(event.target.value)}
-          />
-          <button className="btn btn--secondary" type="submit" disabled={!time}>
-            Avisarme
-          </button>
-        </div>
-        <label className="check">
-          <input type="checkbox" checked={weekly} onChange={(event) => setWeekly(event.target.checked)} />
-          Juego todas las semanas a esta hora
-        </label>
-      </form>
-    );
-  }
-
-  if (moment === 'before') {
-    return (
-      <section className="card match match--set">
-        <div className="row row--flush">
-          <span className="zone-icon zone-icon--sun" aria-hidden="true">
-            <ClockIcon />
-          </span>
-          <div className="row__text">
-            <span className="eyebrow">
-              Partido {dayLabel(match, now)} a las {formatTime(match)}
-              {matchOptions.weekly && ' · cada semana'}
-            </span>
-            <strong>Aviso para calentar a las {formatTime(reminderTime(match))}</strong>
-            <span className="muted">
-              {matchOptions.remote
-                ? 'Te llegará aunque cierres la app.'
-                : canNotify()
-                  ? 'Deja PrePádel abierta para que llegue el aviso.'
-                  : 'Activa las notificaciones del navegador para recibir el aviso.'}
-            </span>
-          </div>
-        </div>
-        <button className="link-btn" onClick={() => store.setMatch(null)}>
-          {matchOptions.weekly ? 'Dejar de avisar cada semana' : 'Quitar aviso'}
-        </button>
-      </section>
-    );
-  }
+  const played = matches.filter((match) => matchMoment(new Date(match.at), now) === 'after');
+  const upcoming = matches.filter((match) => matchMoment(new Date(match.at), now) === 'before');
+  const full = matches.length >= MAX_MATCHES;
+  const title = upcoming.length === 1 ? 'Tu partido' : 'Tus partidos';
 
   return (
-    <section className="card match match--set">
+    <>
+      {played.map((match) => (
+        <PlayedMatch key={match.id} match={match} />
+      ))}
+
+      {upcoming.length > 0 && (
+        <section className="card match match--set" aria-label={title}>
+          <div className="row row--flush">
+            <span className="zone-icon zone-icon--sun" aria-hidden="true">
+              <ClockIcon />
+            </span>
+            <div className="row__text">
+              <span className="eyebrow">{title}</span>
+              <strong>Aviso para calentar 30 min antes</strong>
+              <span className="muted">
+                {upcoming.every((match) => match.remote)
+                  ? 'Te llegará aunque cierres la app.'
+                  : canNotify()
+                    ? 'Deja PrePádel abierta para que llegue el aviso.'
+                    : 'Activa las notificaciones del navegador para recibir el aviso.'}
+              </span>
+            </div>
+          </div>
+          <ul className="match__list">
+            {upcoming.map((match) => {
+              const at = new Date(match.at);
+              const when = `${dayLabel(at, now)} a las ${formatTime(at)}`;
+              // "de hoy", "de mañana" o "del martes".
+              const ofWhen = when.startsWith('el ') ? `del ${when.slice(3)}` : `de ${when}`;
+              return (
+                <li key={match.id} className="match__item">
+                  <div className="row__text">
+                    <strong>{capitalize(when)}</strong>
+                    <span className="muted">
+                      Aviso a las {formatTime(reminderTime(at))}
+                      {match.weekly && ' · cada semana'}
+                    </span>
+                  </div>
+                  <button
+                    className="link-btn"
+                    aria-label={`Quitar el partido ${ofWhen}`}
+                    onClick={() => store.removeMatch(match.id)}
+                  >
+                    Quitar
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+          {full ? (
+            <span className="muted small">Como mucho {MAX_MATCHES} partidos: quita uno para añadir otro.</span>
+          ) : (
+            !adding && (
+              <button className="link-btn" onClick={() => setAdding(true)}>
+                Añadir otro partido
+              </button>
+            )
+          )}
+        </section>
+      )}
+
+      {!full && (adding || matches.length === 0) && (
+        <MatchForm now={now} onDone={() => setAdding(false)} cancelable={matches.length > 0} />
+      )}
+    </>
+  );
+}
+
+/** Partido recién jugado: toca recuperar y registrar cómo ha quedado el cuerpo. */
+function PlayedMatch({ match }: { match: Match }) {
+  const store = useStore();
+  const label = `Partido de las ${formatTime(new Date(match.at))}`;
+  return (
+    <section className="card match match--set" aria-label={label}>
       <div className="row__text">
-        <span className="eyebrow">Partido de las {formatTime(match)}</span>
+        <span className="eyebrow">{label}</span>
         <strong>¿Qué tal ha ido? Toca recuperar</strong>
       </div>
       <div className="match__row">
         <Link className="btn btn--secondary" to="/dolor">
           Registrar dolor
         </Link>
-        <button className="link-btn" onClick={finish}>
+        <button className="link-btn" onClick={() => store.finishMatch(match.id)}>
           Listo
         </button>
       </div>
     </section>
   );
+}
+
+/** Partido nuevo: día (de hoy a seis días vista), hora y si se repite cada semana. */
+function MatchForm({ now, onDone, cancelable }: { now: Date; onDone: () => void; cancelable: boolean }) {
+  const store = useStore();
+  const { content } = useAppState();
+  const [day, setDay] = useState(0);
+  const [time, setTime] = useState('');
+  const [weekly, setWeekly] = useState(false);
+
+  return (
+    <form
+      className="card match"
+      aria-label="Nuevo partido"
+      onSubmit={(event) => {
+        event.preventDefault();
+        if (!time) {
+          return;
+        }
+        const id = store.addMatch(nextOccurrence(time, new Date(), day, weekly).toISOString(), weekly);
+        onDone();
+        if (!id) {
+          return;
+        }
+        // Pide permiso y, si el móvil lo admite, deja el aviso también en el servidor (app cerrada).
+        void pushSubscription(content?.pushPublicKey).then((subscription) => {
+          if (subscription) {
+            store.remindWhenClosed(id, subscription);
+          }
+        });
+      }}
+    >
+      <div className="row__text">
+        <span className="eyebrow">¿Cuándo juegas?</span>
+        <strong>Te aviso 30 min antes para calentar</strong>
+      </div>
+      <div className="match__row">
+        <select
+          className="input"
+          aria-label="Día del partido"
+          value={day}
+          onChange={(event) => setDay(Number(event.target.value))}
+        >
+          {dayChoices(now).map((label, offset) => (
+            <option key={offset} value={offset}>
+              {label}
+            </option>
+          ))}
+        </select>
+        <input
+          className="input"
+          type="time"
+          aria-label="Hora del partido"
+          value={time}
+          onChange={(event) => setTime(event.target.value)}
+        />
+      </div>
+      <label className="check">
+        <input type="checkbox" checked={weekly} onChange={(event) => setWeekly(event.target.checked)} />
+        Juego todas las semanas ese día a esa hora
+      </label>
+      <div className="match__row">
+        <button className="btn btn--secondary" type="submit" disabled={!time}>
+          Avisarme
+        </button>
+        {cancelable && (
+          <button className="link-btn" type="button" onClick={onDone}>
+            Cancelar
+          </button>
+        )}
+      </div>
+    </form>
+  );
+}
+
+/** Hoy y los seis días siguientes, para elegir el del partido: "Hoy", "Mañana", "Lunes"... */
+function dayChoices(now: Date): string[] {
+  return Array.from({ length: 7 }, (_, offset) => {
+    if (offset < 2) {
+      return offset === 0 ? 'Hoy' : 'Mañana';
+    }
+    const date = new Date(now);
+    date.setDate(date.getDate() + offset);
+    return capitalize(date.toLocaleDateString('es-ES', { weekday: 'long' }));
+  });
+}
+
+function capitalize(text: string): string {
+  return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
 /** "hoy", "mañana" o "el martes". */

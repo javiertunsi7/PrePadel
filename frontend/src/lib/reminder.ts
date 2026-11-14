@@ -4,18 +4,25 @@
 import type { PushTarget } from './types';
 
 export const LEAD_MINUTES = 30;
+/** Partidos con aviso a la vez, de sobra para quien juega varios días por semana. El servidor tiene el mismo tope. */
+export const MAX_MATCHES = 4;
 /** Tras la hora de inicio, la app pregunta por el partido durante este tiempo. */
 const MATCH_WINDOW_HOURS = 3;
 /** A partir de aquí el partido se da por pasado. */
 export const MATCH_OVER_MS = MATCH_WINDOW_HOURS * 3_600_000;
 
-/** Próxima vez que el reloj marca esa hora ("19:00"): hoy si aún no ha pasado; si no, mañana. */
-export function nextOccurrence(time: string, now: Date): Date {
+/**
+ * Fecha del partido: el día elegido (0 hoy, 1 mañana...) a esa hora ("19:00"). Hoy a una
+ * hora que ya ha pasado no puede ser: el partido suelto es mañana y el semanal, el mismo
+ * día de la semana que viene.
+ */
+export function nextOccurrence(time: string, now: Date, day = 0, weekly = false): Date {
   const [hours, minutes] = time.split(':').map(Number);
   const date = new Date(now);
+  date.setDate(date.getDate() + day);
   date.setHours(hours, minutes, 0, 0);
   if (date.getTime() <= now.getTime()) {
-    date.setDate(date.getDate() + 1);
+    date.setDate(date.getDate() + (weekly ? 7 : 1));
   }
   return date;
 }
@@ -28,6 +35,14 @@ export function reminderTime(match: Date): Date {
 export function msUntilReminder(match: Date, now: Date): number | null {
   const ms = reminderTime(match).getTime() - now.getTime();
   return ms > 0 ? ms : null;
+}
+
+/** Cuánto falta (ms) para cada aviso que aún no ha llegado, para lanzarlos con la app abierta. */
+export function pendingReminders(matches: readonly { at: string }[], now: Date): number[] {
+  return matches.flatMap((match) => {
+    const ms = msUntilReminder(new Date(match.at), now);
+    return ms === null ? [] : [ms];
+  });
 }
 
 /** Partido semanal: el mismo día y a la misma hora (de reloj) de la próxima semana que aún no haya pasado. */

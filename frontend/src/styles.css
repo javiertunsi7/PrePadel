@@ -586,6 +586,28 @@ input {
   gap: 10px;
 }
 
+.match__list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.match__item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: rgb(255 255 255 / 0.75);
+  border-radius: 16px;
+}
+
+.match__item .link-btn {
+  align-self: center;
+}
+
 .program-today {
   display: flex;
   flex-direction: column;

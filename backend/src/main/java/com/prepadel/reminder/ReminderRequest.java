@@ -7,7 +7,8 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
 /**
- * Hora del partido y suscripción de notificaciones del móvil. Sin hora o sin
+ * Formato antiguo, de cuando solo cabía un partido por jugador (POST /api/me/reminder).
+ * Sigue llegando desde móviles con avisos pendientes en la cola. Sin hora o sin
  * suscripción, se cancela el aviso que hubiera.
  *
  * @param subscription lo que devuelve el navegador al suscribirse (PushSubscription)
