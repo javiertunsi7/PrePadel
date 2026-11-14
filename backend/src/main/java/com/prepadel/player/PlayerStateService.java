@@ -16,6 +16,7 @@ import com.prepadel.pain.PainAlertService;
 import com.prepadel.pain.PainEntry;
 import com.prepadel.pain.PainEntryRepository;
 import com.prepadel.progress.ProgressService;
+import com.prepadel.progress.ProgressService.EnrollmentProgress;
 import com.prepadel.progress.RoutineCompletionRepository;
 import com.prepadel.risk.RiskProfileService;
 import com.prepadel.risk.ZoneRisk;
@@ -74,11 +75,13 @@ public class PlayerStateService {
 		Map<String, String> zoneNames = new LinkedHashMap<>();
 		zones.forEach(zone -> zoneNames.put(zone.getCode(), zone.getName()));
 
+		EnrollmentProgress enrollment = progressService.activeProgress(player.getId()).orElse(null);
+
 		return new PlayerState(
 				PlayerState.Profile.from(player),
 				risk,
 				recommendedProgram,
-				progressService.activeProgress(player.getId()).orElse(null),
+				enrollment,
 				completionRepository
 						.findByPlayerIdAndCompletedAtAfterOrderByCompletedAtDesc(player.getId(),
 								now.minus(COMPLETION_HISTORY))
@@ -86,7 +89,23 @@ public class PlayerStateService {
 						.map(PlayerState.Completion::from)
 						.toList(),
 				pain.stream().map(PlayerState.Pain::from).toList(),
-				alertService.evaluate(pain, zoneNames));
+				alertService.evaluate(pain, zoneNames),
+				enrollment == null ? null : programPain(player, enrollment));
+	}
+
+	private PlayerState.ProgramPain programPain(Player player, EnrollmentProgress enrollment) {
+		String zone = programRepository.findById(enrollment.programSlug()).orElseThrow().getZoneCode();
+		return new PlayerState.ProgramPain(
+				painRepository
+						.findFirstByPlayerIdAndZoneCodeAndRecordedAtLessThanEqualOrderByRecordedAtDesc(player.getId(),
+								zone, enrollment.startedAt())
+						.map(PlayerState.Pain::from)
+						.orElse(null),
+				painRepository
+						.findFirstByPlayerIdAndZoneCodeAndRecordedAtAfterOrderByRecordedAtDesc(player.getId(), zone,
+								enrollment.startedAt())
+						.map(PlayerState.Pain::from)
+						.orElse(null));
 	}
 
 }

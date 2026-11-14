@@ -1,9 +1,13 @@
 package com.prepadel.player;
 
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.UUID;
 
 import com.jayway.jsonpath.JsonPath;
+import com.prepadel.pain.PainContext;
+import com.prepadel.pain.PainEntry;
 import com.prepadel.pain.PainEntryRepository;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -37,6 +41,9 @@ class PlayerJourneyApiTest {
 
 	@Autowired
 	private PainEntryRepository painRepository;
+
+	@Autowired
+	private PlayerRepository playerRepository;
 
 	private MockMvc mvc;
 
@@ -151,6 +158,29 @@ class PlayerJourneyApiTest {
 				.andExpect(jsonPath("$.enrollment.currentWeek").value(1));
 	}
 
+	/** Para el resumen al terminar: el dolor de la zona antes de empezar y el último, aunque sean antiguos. */
+	@Test
+	void theActiveProgramCarriesThePainOfItsZoneBeforeStartingAndTheLatestSince() throws Exception {
+		// Sin hombro en el cuestionario: su único registro previo queda fuera de la lista de los últimos meses.
+		String token = register("{\"ELBOW\": 0, \"KNEE\": 0}");
+		UUID playerId = playerRepository.findByTokenHash(Tokens.hash(token)).orElseThrow().getId();
+		painRepository.save(new PainEntry(UUID.randomUUID(), playerId, "SHOULDER", 5, PainContext.CHECK_IN,
+				Instant.now().minus(Duration.ofDays(200))));
+		mvc.perform(get("/api/me").header(HttpHeaders.AUTHORIZATION, bearer(token)))
+				.andExpect(jsonPath("$.programPain").isEmpty());
+
+		enroll(token, "hombro-de-remate")
+				.andExpect(jsonPath("$.pain", hasSize(2)))
+				.andExpect(jsonPath("$.programPain.beforeStart.score").value(5))
+				.andExpect(jsonPath("$.programPain.latest").isEmpty());
+
+		logPain(token, UUID.randomUUID().toString(), "SHOULDER", 2).andExpect(status().isOk());
+		logPain(token, UUID.randomUUID().toString(), "KNEE", 6)
+				.andExpect(jsonPath("$.programPain.beforeStart.score").value(5))
+				.andExpect(jsonPath("$.programPain.latest.zone").value("SHOULDER"))
+				.andExpect(jsonPath("$.programPain.latest.score").value(2));
+	}
+
 	@Test
 	void switchingProgramReplacesTheActiveOne() throws Exception {
 		String token = register(3, 0, 3);
@@ -259,11 +289,15 @@ class PlayerJourneyApiTest {
 	}
 
 	private String register(int elbow, int shoulder, int knee) throws Exception {
+		return register("{\"ELBOW\": %d, \"SHOULDER\": %d, \"KNEE\": %d}".formatted(elbow, shoulder, knee));
+	}
+
+	private String register(String discomfort) throws Exception {
 		String body = mvc.perform(post("/api/players").contentType(MediaType.APPLICATION_JSON).content("""
 				{"age": 47, "weeklyHours": 4, "level": "INTERMEDIATE",
-				 "discomfort": {"ELBOW": %d, "SHOULDER": %d, "KNEE": %d},
+				 "discomfort": %s,
 				 "healthDataConsent": true}
-				""".formatted(elbow, shoulder, knee)))
+				""".formatted(discomfort)))
 				.andExpect(status().isCreated())
 				.andExpect(jsonPath("$.state.profile.level").value("INTERMEDIATE"))
 				.andReturn()

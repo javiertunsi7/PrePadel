@@ -158,6 +158,14 @@ export interface PainAlert {
   message: string;
 }
 
+/** Dolor de la zona del programa activo que puede ser más antiguo que la lista `pain`. */
+export interface ProgramPain {
+  /** Último registro antes de empezar el programa. */
+  beforeStart: PainEntry | null;
+  /** Último registro desde que empezó. */
+  latest: PainEntry | null;
+}
+
 export interface PlayerState {
   profile: Profile;
   risk: ZoneRisk[];
@@ -168,6 +176,8 @@ export interface PlayerState {
   /** El más reciente primero. */
   pain: PainEntry[];
   alerts: PainAlert[];
+  /** Null sin programa. Falta en las copias guardadas en el móvil antes de que existiera. */
+  programPain?: ProgramPain | null;
 }
 
 export interface OnboardingAnswers {

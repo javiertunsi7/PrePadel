@@ -2,8 +2,10 @@ import { useState } from 'react';
 import { Link, Navigate, useParams } from 'react-router';
 import { ProgramPaused, SessionDots } from '../components/Bits';
 import { BackIcon, CheckIcon, ZoneIcon } from '../components/Icons';
+import { ProgramEnd, ProgramEndActions } from '../components/ProgramEnd';
 import { completedToday, formatMinutes, formatSeconds, pausingAlert } from '../lib/derive';
 import { useAppState, useStore } from '../lib/store';
+import { programSummary } from '../lib/summary';
 import { zoneVars } from '../lib/zones';
 
 /** Un programa: sus cuatro semanas, qué se hace en cada una y por dónde va el jugador. */
@@ -34,6 +36,7 @@ export function ProgramDetail() {
       : undefined;
   const doneToday = completedToday(me.recentCompletions, new Date());
   const sessionDoneToday = program.weeks.some((week) => doneToday.has(week.routineSlug));
+  const summary = programSummary(me, program);
 
   const startProgram = () => {
     store.enroll(program.slug);
@@ -57,6 +60,12 @@ export function ProgramDetail() {
           <span className="chip">Hasta {formatMinutes(longest)}</span>
         </div>
       </header>
+
+      {summary && (
+        <div className="card">
+          <ProgramEnd summary={summary} zone={program.zone} content={content} />
+        </div>
+      )}
 
       {equipment.length > 0 && (
         <p className="note">
@@ -113,12 +122,7 @@ export function ProgramDetail() {
             </Link>
           )
         ) : active ? (
-          <>
-            <p className="done-note">¡Programa completado!</p>
-            <button className="btn btn--secondary btn--block" onClick={startProgram}>
-              Repetir programa
-            </button>
-          </>
+          <ProgramEndActions onRepeat={startProgram} />
         ) : otherProgram && confirmingSwitch ? (
           <div className="confirm">
             <p>Dejarás «{otherProgram.name}». Si vuelves a él, empezará desde la semana 1.</p>

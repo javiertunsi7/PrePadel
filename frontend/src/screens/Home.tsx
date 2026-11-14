@@ -3,6 +3,7 @@ import { Link } from 'react-router';
 import { AlertCard, ProgramPaused, SessionDots } from '../components/Bits';
 import { CheckIcon, ChevronIcon, ClockIcon, PainIcon, ZoneIcon } from '../components/Icons';
 import { Mascot } from '../components/Mascot';
+import { ProgramEnd, ProgramEndActions } from '../components/ProgramEnd';
 import { completedToday, formatMinutes, formatTime, pausingAlert, sameDay, streakDays } from '../lib/derive';
 import { useNow } from '../lib/hooks';
 import {
@@ -14,6 +15,7 @@ import {
   reminderTime,
 } from '../lib/reminder';
 import { useAppState, useStore } from '../lib/store';
+import { programSummary } from '../lib/summary';
 import type { Content, PlayerState, Routine } from '../lib/types';
 import { zoneVars } from '../lib/zones';
 
@@ -100,6 +102,7 @@ function RoutineCard({ routine, eyebrow, done }: { routine: Routine; eyebrow: st
 
 /** La sesión del programa activo o, si no hay ninguno, el programa recomendado. */
 function ProgramToday({ content, me, doneToday }: { content: Content; me: PlayerState; doneToday: Set<string> }) {
+  const store = useStore();
   const enrollment = me.enrollment;
   const program = enrollment && content.programs.find((candidate) => candidate.slug === enrollment.programSlug);
   const session = enrollment && content.routines.find((routine) => routine.slug === enrollment.routineSlug);
@@ -125,6 +128,7 @@ function ProgramToday({ content, me, doneToday }: { content: Content; me: Player
 
   const week = program.weeks.find((candidate) => candidate.week === enrollment.currentWeek);
   const sessionDoneToday = program.weeks.some((candidate) => doneToday.has(candidate.routineSlug));
+  const summary = programSummary(me, program);
 
   return (
     <section className="card card--zone program-today" style={zoneVars(program.zone)}>
@@ -140,8 +144,11 @@ function ProgramToday({ content, me, doneToday }: { content: Content; me: Player
         </div>
         <SessionDots done={enrollment.sessionsDoneThisWeek} total={enrollment.sessionsPerWeek} />
       </Link>
-      {enrollment.completed ? (
-        <p className="done-note">¡Programa completado! Puedes repetirlo o reforzar otra zona.</p>
+      {summary ? (
+        <>
+          <ProgramEnd summary={summary} zone={program.zone} content={content} />
+          <ProgramEndActions onRepeat={() => store.enroll(program.slug)} />
+        </>
       ) : pausingAlert(me.alerts, program.zone) ? (
         <ProgramPaused />
       ) : sessionDoneToday ? (

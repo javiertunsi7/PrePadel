@@ -97,9 +97,10 @@ frontend/src/
   App.tsx         rutas: / , /programas[/:slug], /dolor, /perfil[/ejercicios], /rutina/:slug, /bienvenida,
                   /revision (fisio, carga aparte)
   lib/            api, store (estado + cola offline), sync, player (reproductor puro),
-                  voice, reminder, derive, types, copy (textos), zones, club (enlace de club)
+                  voice, reminder, derive, types, copy (textos), zones, club (enlace de club),
+                  summary (cierre del programa: sesiones y dolor de la zona al empezar y ahora)
   screens/        una pantalla por ruta
-  components/     Mascot, Icons, PainScale, Ring, TabBar, ExerciseSheet, Bits
+  components/     Mascot, Icons, PainScale, Ring, TabBar, ExerciseSheet, Bits, ProgramEnd
   illustrations/  catalog.ts (posturas por slug de ejercicio), engine.ts (animación),
                   DevSheet en /dev/ilustraciones (solo en desarrollo)
   styles.css      todos los estilos
