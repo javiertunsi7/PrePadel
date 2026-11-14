@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useSyncExternalStore, type ReactNode } from 'react';
 import { ApiError, type Api } from './api';
 import { forgetClub, pendingClub } from './club';
+import { MATCH_OVER_MS, MAX_MATCHES, matchMoment, nextWeeklyMatch } from './reminder';
 import { load, remove, save } from './storage';
 import { applyOptimistic, newId, toRequest, type Mutation } from './sync';
 import type { Content, OnboardingAnswers, PainContext, PlayerState, PushTarget } from './types';
@@ -10,14 +11,20 @@ export interface Settings {
   voice: boolean;
 }
 
-export interface MatchOptions {
+/** Un partido con su aviso 30 minutos antes. */
+export interface Match {
+  /** Lo genera el móvil; el aviso del servidor lleva el mismo id. */
+  id: string;
+  /** Hora del partido (ISO). En el semanal, la de la próxima vez. */
+  at: string;
   /** Se repite cada semana el mismo día y a la misma hora. */
   weekly: boolean;
   /** El servidor también avisa, aunque la app esté cerrada. */
   remote: boolean;
 }
 
-const NO_MATCH_OPTIONS: MatchOptions = { weekly: false, remote: false };
+/** El partido de cuando solo cabía uno. El servidor lo guarda con este mismo id (migración V8). */
+export const LEGACY_MATCH_ID = '00000000-0000-0000-0000-000000000000';
 
 export interface AppState {
   /** Token del jugador; null hasta que rellena el cuestionario. */
@@ -29,9 +36,8 @@ export interface AppState {
   /** Acciones hechas en el móvil que el servidor aún no ha confirmado. */
   outbox: Mutation[];
   settings: Settings;
-  /** Hora del próximo partido (ISO), para el recordatorio. */
-  matchAt: string | null;
-  matchOptions: MatchOptions;
+  /** Partidos con recordatorio, el más próximo primero. */
+  matches: Match[];
   /** El último intento de hablar con el servidor falló por falta de red. No se guarda. */
   offline: boolean;
 }
@@ -43,9 +49,28 @@ const STORAGE_KEYS: { [K in keyof AppState]?: string } = {
   me: 'prepadel.me',
   outbox: 'prepadel.outbox',
   settings: 'prepadel.settings',
-  matchAt: 'prepadel.match',
-  matchOptions: 'prepadel.match-options',
+  matches: 'prepadel.matches',
 };
+
+/**
+ * Partidos guardados en el móvil. Si viene de cuando solo cabía uno, ese partido pasa a la
+ * lista con el id que le dio el servidor al migrar, para poder quitarlo después.
+ */
+function loadMatches(): Match[] {
+  const saved = load<Match[]>('prepadel.matches');
+  if (saved) {
+    return saved;
+  }
+  const at = load<string>('prepadel.match');
+  const options = load<{ weekly?: boolean; remote?: boolean }>('prepadel.match-options');
+  const matches = at
+    ? [{ id: LEGACY_MATCH_ID, at, weekly: options?.weekly ?? false, remote: options?.remote ?? false }]
+    : [];
+  save('prepadel.matches', matches);
+  remove('prepadel.match');
+  remove('prepadel.match-options');
+  return matches;
+}
 
 /**
  * Estado de la app, offline first: todo se lee de la copia guardada en el
@@ -66,8 +91,7 @@ export class AppStore {
       me: load<PlayerState>('prepadel.me'),
       outbox: load<Mutation[]>('prepadel.outbox') ?? [],
       settings: load<Settings>('prepadel.settings') ?? { voice: true },
-      matchAt: load<string>('prepadel.match'),
-      matchOptions: load<MatchOptions>('prepadel.match-options') ?? NO_MATCH_OPTIONS,
+      matches: loadMatches(),
       offline: false,
     };
   }
@@ -128,35 +152,76 @@ export class AppStore {
     this.set({ settings: { ...this.state.settings, voice } });
   }
 
-  /** Marca el partido (o lo quita con null). Quitarlo cancela también el aviso del servidor. */
-  setMatch(matchAt: string | null, weekly = false): void {
-    const wasRemote = this.state.matchOptions.remote;
-    this.set({ matchAt, matchOptions: { weekly: matchAt !== null && weekly, remote: false } });
-    if (matchAt === null && (wasRemote || this.state.content?.pushPublicKey)) {
-      this.enqueue({ kind: 'reminder', id: newId(), matchAt: null, subscription: null, weekly: false, timeZone: null });
+  /** Añade un partido y devuelve su id; null si ya hay uno a esa hora o no caben más. */
+  addMatch(at: string, weekly = false): string | null {
+    const { matches } = this.state;
+    if (matches.length >= MAX_MATCHES || matches.some((match) => Date.parse(match.at) === Date.parse(at))) {
+      return null;
     }
+    const id = newId();
+    this.setMatches([...matches, { id, at, weekly, remote: false }]);
+    return id;
   }
 
-  /** Partido semanal ya jugado: pasa al de la semana que viene. El servidor hace lo mismo por su cuenta. */
-  nextWeekMatch(matchAt: string): void {
-    this.set({ matchAt });
-  }
-
-  /** Pide al servidor el aviso con la app cerrada. Se ignora si el jugador ya cambió o quitó el partido. */
-  remindWhenClosed(matchAt: string, subscription: PushTarget): void {
-    if (this.state.matchAt !== matchAt) {
+  /** Quita un partido y, si el servidor lo tenía, también su aviso con la app cerrada. */
+  removeMatch(id: string): void {
+    const match = this.state.matches.find((candidate) => candidate.id === id);
+    if (!match) {
       return;
     }
-    const { weekly } = this.state.matchOptions;
-    this.set({ matchOptions: { weekly, remote: true } });
+    this.setMatches(this.state.matches.filter((candidate) => candidate.id !== id));
+    if (match.remote) {
+      this.enqueue({ kind: 'match-removal', id: newId(), matchId: id });
+    }
+  }
+
+  /** Partido jugado ("Listo"): el semanal pasa al de la semana que viene y el suelto se quita. */
+  finishMatch(id: string): void {
+    const match = this.state.matches.find((candidate) => candidate.id === id);
+    if (!match?.weekly) {
+      this.removeMatch(id);
+      return;
+    }
+    const at = new Date(match.at);
+    this.moveMatch(id, nextWeeklyMatch(at, new Date(at.getTime() + MATCH_OVER_MS)));
+  }
+
+  /**
+   * Partidos que ya quedan atrás: el semanal pasa al próximo que no haya llegado (el
+   * servidor hace lo mismo por su cuenta) y el suelto se quita.
+   */
+  settleMatches(now: Date): void {
+    for (const match of this.state.matches) {
+      const at = new Date(match.at);
+      if (matchMoment(at, now) !== 'over') {
+        continue;
+      }
+      if (match.weekly) {
+        this.moveMatch(match.id, nextWeeklyMatch(at, now));
+      } else {
+        this.removeMatch(match.id);
+      }
+    }
+  }
+
+  /** Pide al servidor el aviso de ese partido con la app cerrada. Se ignora si el jugador ya lo quitó. */
+  remindWhenClosed(id: string, subscription: PushTarget): void {
+    const match = this.state.matches.find((candidate) => candidate.id === id);
+    if (!match) {
+      return;
+    }
+    this.setMatches(
+      this.state.matches.map((candidate) => (candidate.id === id ? { ...candidate, remote: true } : candidate)),
+    );
     this.enqueue({
-      kind: 'reminder',
+      kind: 'match',
       id: newId(),
-      matchAt,
-      subscription,
-      weekly,
+      matchId: id,
+      matchAt: match.at,
+      weekly: match.weekly,
       // Para que el partido semanal siga a la misma hora cuando cambia el horario de verano.
       timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone ?? null,
+      subscription,
     });
   }
 
@@ -203,9 +268,11 @@ export class AppStore {
     try {
       while (this.state.outbox.length > 0) {
         const next = this.state.outbox[0];
-        const { path, body } = toRequest(next);
+        const request = toRequest(next);
         try {
-          server = await this.api.send(token, path, body);
+          server = await (request.method === 'DELETE'
+            ? this.api.remove(token, request.path)
+            : this.api.send(token, request.path, request.body));
         } catch (error) {
           if (!(error instanceof ApiError)) {
             offline = true;
@@ -243,7 +310,16 @@ export class AppStore {
   }
 
   private forget(): void {
-    this.set({ token: null, me: null, outbox: [], matchAt: null, matchOptions: NO_MATCH_OPTIONS, offline: false });
+    this.set({ token: null, me: null, outbox: [], matches: [], offline: false });
+  }
+
+  private moveMatch(id: string, at: Date): void {
+    this.setMatches(this.state.matches.map((match) => (match.id === id ? { ...match, at: at.toISOString() } : match)));
+  }
+
+  /** Guarda la lista con el partido más próximo primero. */
+  private setMatches(matches: Match[]): void {
+    this.set({ matches: [...matches].sort((a, b) => Date.parse(a.at) - Date.parse(b.at)) });
   }
 
   private schedule(task: () => Promise<void>): Promise<void> {

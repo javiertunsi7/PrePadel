@@ -1,7 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import { answers, content, fakeApi, playerState, registeredStore } from '../test/fixtures';
 import { ApiError, NetworkError, type Api } from './api';
-import { AppStore } from './store';
+import { MAX_MATCHES } from './reminder';
+import { AppStore, LEGACY_MATCH_ID } from './store';
 
 const noNetwork = async (): Promise<never> => {
   throw new NetworkError();
@@ -146,12 +147,12 @@ describe('cuenta y ajustes', () => {
   it('borrar la cuenta la elimina del servidor y limpia el móvil', async () => {
     const api = fakeApi();
     const store = await registeredStore(api);
-    store.setMatch('2026-11-11T19:00:00.000Z');
+    store.addMatch('2026-11-11T19:00:00.000Z');
 
     await store.deleteAccount();
 
     expect(api.deleteMe).toHaveBeenCalledWith('token-de-prueba');
-    expect(store.getState()).toMatchObject({ token: null, me: null, matchAt: null });
+    expect(store.getState()).toMatchObject({ token: null, me: null, matches: [] });
     expect(localStorage.getItem('prepadel.me')).toBeNull();
   });
 
@@ -170,69 +171,139 @@ describe('cuenta y ajustes', () => {
   });
 });
 
-describe('aviso del partido con la app cerrada', () => {
+describe('partidos con aviso', () => {
   const target = { endpoint: 'https://fcm.googleapis.com/fcm/send/abc', p256dh: 'clave', auth: 'secreto' };
   const withPush = () => fakeApi({ content: vi.fn(async () => ({ ...content, pushPublicKey: 'clave-publica' })) });
+  // Noviembre de 2026: el 17 es martes y el 19, jueves.
+  const tuesday = '2026-11-17T18:00:00.000Z';
+  const thursday = '2026-11-19T19:00:00.000Z';
 
-  it('manda al servidor la hora del partido y la suscripción del móvil', async () => {
+  it('manda al servidor el partido con su id, la hora y la suscripción del móvil', async () => {
     const api = withPush();
     const store = await registeredStore(api);
 
-    store.setMatch('2026-11-12T19:00:00.000Z');
-    store.remindWhenClosed('2026-11-12T19:00:00.000Z', target);
+    const id = store.addMatch(tuesday) ?? '';
+    store.remindWhenClosed(id, target);
 
+    expect(store.getState().matches).toEqual([{ id, at: tuesday, weekly: false, remote: true }]);
     await vi.waitFor(() =>
-      expect(api.send).toHaveBeenCalledWith(
-        'token-de-prueba',
-        '/me/reminder',
-        expect.objectContaining({ matchAt: '2026-11-12T19:00:00.000Z', subscription: target, weekly: false }),
-      ),
+      expect(api.send).toHaveBeenCalledWith('token-de-prueba', '/me/matches', {
+        id,
+        matchAt: tuesday,
+        weekly: false,
+        timeZone: expect.any(String),
+        subscription: target,
+      }),
     );
+  });
+
+  it('dos partidos semanales en días distintos van al servidor cada uno con su id y se quitan por separado', async () => {
+    const api = withPush();
+    const store = await registeredStore(api);
+
+    const thursdayId = store.addMatch(thursday, true) ?? '';
+    const tuesdayId = store.addMatch(tuesday, true) ?? '';
+    store.remindWhenClosed(tuesdayId, target);
+    store.remindWhenClosed(thursdayId, target);
+
+    expect(store.getState().matches.map((match) => match.at)).toEqual([tuesday, thursday]);
+    await vi.waitFor(() => expect(store.getState().outbox).toEqual([]));
+    expect(vi.mocked(api.send).mock.calls.map(([, path, body]) => [path, body])).toEqual([
+      ['/me/matches', expect.objectContaining({ id: tuesdayId, matchAt: tuesday, weekly: true })],
+      ['/me/matches', expect.objectContaining({ id: thursdayId, matchAt: thursday, weekly: true })],
+    ]);
+
+    store.removeMatch(tuesdayId);
+
+    expect(store.getState().matches).toEqual([{ id: thursdayId, at: thursday, weekly: true, remote: true }]);
+    await vi.waitFor(() => expect(api.remove).toHaveBeenCalledWith('token-de-prueba', `/me/matches/${tuesdayId}`));
+    expect(new AppStore(fakeApi()).getState().matches).toEqual(store.getState().matches);
+  });
+
+  it('pasados, cada semanal salta a su día de la semana que viene y el suelto se quita', async () => {
+    const api = withPush();
+    const store = await registeredStore(api);
+    const tuesdayId = store.addMatch(tuesday, true) ?? '';
+    const thursdayId = store.addMatch(thursday, true) ?? '';
+    const wednesday = store.addMatch('2026-11-18T19:00:00.000Z') ?? '';
+    store.remindWhenClosed(wednesday, target);
+
+    store.settleMatches(new Date('2026-11-20T12:00:00.000Z'));
+
+    expect(store.getState().matches).toEqual([
+      { id: tuesdayId, at: '2026-11-24T18:00:00.000Z', weekly: true, remote: false },
+      { id: thursdayId, at: '2026-11-26T19:00:00.000Z', weekly: true, remote: false },
+    ]);
+    await vi.waitFor(() => expect(api.remove).toHaveBeenCalledWith('token-de-prueba', `/me/matches/${wednesday}`));
+  });
+
+  it('al decir "Listo", el semanal pasa a la semana que viene y el suelto se quita', async () => {
+    const store = await registeredStore(fakeApi());
+    const tuesdayId = store.addMatch(tuesday, true) ?? '';
+    const wednesday = store.addMatch('2026-11-18T19:00:00.000Z') ?? '';
+
+    store.finishMatch(tuesdayId);
+    store.finishMatch(wednesday);
+
+    expect(store.getState().matches).toEqual([
+      { id: tuesdayId, at: '2026-11-24T18:00:00.000Z', weekly: true, remote: false },
+    ]);
+  });
+
+  it('no caben más de cuatro partidos ni dos a la misma hora', async () => {
+    const store = await registeredStore(fakeApi());
+
+    expect(store.addMatch(tuesday)).not.toBeNull();
+    expect(store.addMatch('2026-11-17T19:00:00+01:00')).toBeNull();
+    for (const at of [thursday, '2026-11-20T18:00:00.000Z', '2026-11-21T09:00:00.000Z']) {
+      expect(store.addMatch(at)).not.toBeNull();
+    }
+    expect(store.addMatch('2026-11-22T10:00:00.000Z')).toBeNull();
+    expect(store.getState().matches).toHaveLength(MAX_MATCHES);
   });
 
   it('si el jugador ya quitó el partido, una suscripción que llega tarde no lo vuelve a programar', async () => {
     const api = withPush();
     const store = await registeredStore(api);
 
-    store.setMatch('2026-11-12T19:00:00.000Z');
-    store.setMatch(null);
-    store.remindWhenClosed('2026-11-12T19:00:00.000Z', target);
+    const id = store.addMatch(tuesday) ?? '';
+    store.removeMatch(id);
+    store.remindWhenClosed(id, target);
 
-    await vi.waitFor(() =>
-      expect(api.send).toHaveBeenCalledWith(
-        'token-de-prueba',
-        '/me/reminder',
-        expect.objectContaining({ matchAt: null, subscription: null }),
-      ),
-    );
-    expect(api.send).toHaveBeenCalledTimes(1);
-  });
-
-  it('el partido semanal manda al servidor que se repite y la zona horaria del móvil', async () => {
-    const api = withPush();
-    const store = await registeredStore(api);
-
-    store.setMatch('2026-11-12T19:00:00.000Z', true);
-    store.remindWhenClosed('2026-11-12T19:00:00.000Z', target);
-
-    expect(store.getState().matchOptions).toEqual({ weekly: true, remote: true });
-    await vi.waitFor(() =>
-      expect(api.send).toHaveBeenCalledWith(
-        'token-de-prueba',
-        '/me/reminder',
-        expect.objectContaining({ weekly: true, timeZone: expect.any(String) }),
-      ),
-    );
-  });
-
-  it('sin avisos en el servidor, quitar el partido no envía nada', async () => {
-    const api = fakeApi();
-    const store = await registeredStore(api);
-
-    store.setMatch('2026-11-12T19:00:00.000Z');
-    store.setMatch(null);
-
-    expect(store.getState().outbox).toEqual([]);
+    expect(store.getState()).toMatchObject({ matches: [], outbox: [] });
     expect(api.send).not.toHaveBeenCalled();
+    expect(api.remove).not.toHaveBeenCalled();
+  });
+
+  it('un móvil de cuando solo cabía un partido lo conserva y envía lo que tenía en la cola', async () => {
+    await registeredStore(fakeApi());
+    localStorage.removeItem('prepadel.matches');
+    localStorage.setItem('prepadel.match', JSON.stringify(tuesday));
+    localStorage.setItem('prepadel.match-options', JSON.stringify({ weekly: true, remote: true }));
+    localStorage.setItem(
+      'prepadel.outbox',
+      JSON.stringify([{ kind: 'reminder', id: 'r-1', matchAt: tuesday, subscription: target, weekly: true }]),
+    );
+
+    const api = fakeApi();
+    const updated = new AppStore(api);
+
+    expect(updated.getState().matches).toEqual([{ id: LEGACY_MATCH_ID, at: tuesday, weekly: true, remote: true }]);
+    expect(localStorage.getItem('prepadel.match')).toBeNull();
+    expect(new AppStore(fakeApi()).getState().matches).toEqual(updated.getState().matches);
+
+    await updated.sync();
+    expect(api.send).toHaveBeenCalledWith('token-de-prueba', '/me/reminder', {
+      matchAt: tuesday,
+      subscription: target,
+      weekly: true,
+      timeZone: null,
+    });
+
+    // Es el mismo partido que el servidor guardó con el id nulo: se quita por la ruta nueva.
+    updated.removeMatch(LEGACY_MATCH_ID);
+    await vi.waitFor(() =>
+      expect(api.remove).toHaveBeenCalledWith('token-de-prueba', '/me/matches/00000000-0000-0000-0000-000000000000'),
+    );
   });
 });

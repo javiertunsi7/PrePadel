@@ -137,14 +137,57 @@ describe('dolor y programas, aplicados en local', () => {
 });
 
 describe('peticiones al servidor', () => {
+  const target = { endpoint: 'https://fcm.googleapis.com/fcm/send/abc', p256dh: 'clave', auth: 'secreto' };
+
   it('cada acción va a su ruta con el id generado en el móvil', () => {
     expect(toRequest(completion('codo-semana-1', 'abc'))).toEqual({
+      method: 'POST',
       path: '/me/completions',
       body: { id: 'abc', routineSlug: 'codo-semana-1', completedAt: '2026-11-10T18:00:00Z' },
     });
     expect(toRequest({ kind: 'enroll', id: 'e-1', programSlug: 'codo-de-padel' })).toEqual({
+      method: 'POST',
       path: '/me/enrollment',
       body: { programSlug: 'codo-de-padel' },
+    });
+  });
+
+  it('cada partido va con su id, y quitar uno es borrar ese', () => {
+    const match: Mutation = {
+      kind: 'match',
+      id: 'm-1',
+      matchId: 'partido-martes',
+      matchAt: '2026-11-17T18:00:00.000Z',
+      weekly: true,
+      timeZone: 'Europe/Madrid',
+      subscription: target,
+    };
+    expect(toRequest(match)).toEqual({
+      method: 'POST',
+      path: '/me/matches',
+      body: {
+        id: 'partido-martes',
+        matchAt: '2026-11-17T18:00:00.000Z',
+        weekly: true,
+        timeZone: 'Europe/Madrid',
+        subscription: target,
+      },
+    });
+    expect(toRequest({ kind: 'match-removal', id: 'm-2', matchId: 'partido-martes' })).toEqual({
+      method: 'DELETE',
+      path: '/me/matches/partido-martes',
+    });
+    expect(applyOptimistic(playerState(), match, content)).toEqual(playerState());
+  });
+
+  it('lo que quedó en cola con el formato de un solo partido sigue yendo a su ruta de siempre', () => {
+    // Guardado antes del partido semanal: sin weekly ni timeZone.
+    const old = { kind: 'reminder', id: 'r-1', matchAt: '2026-11-12T19:00:00.000Z', subscription: target } as Mutation;
+
+    expect(toRequest(old)).toEqual({
+      method: 'POST',
+      path: '/me/reminder',
+      body: { matchAt: '2026-11-12T19:00:00.000Z', subscription: target, weekly: false, timeZone: null },
     });
   });
 });

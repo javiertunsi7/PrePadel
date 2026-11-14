@@ -21,7 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class PlayerExportService {
 
 	public record Export(Instant exportedAt, Profile profile, List<Pain> pain, List<Enrollment> programs,
-			List<Completion> completedRoutines, List<Abandonment> abandonedRoutines, Match nextMatch) {
+			List<Completion> completedRoutines, List<Abandonment> abandonedRoutines, List<Match> matches) {
 	}
 
 	/** @param club código del club con cuyo enlace llegó, o null */
@@ -41,7 +41,7 @@ public class PlayerExportService {
 	public record Abandonment(String routine, String exercise, Instant abandonedAt) {
 	}
 
-	/** El aviso del partido. La dirección de notificaciones del móvil no se incluye: es técnica. */
+	/** Un partido con aviso. La dirección de notificaciones del móvil no se incluye: es técnica. */
 	public record Match(Instant matchAt, boolean weekly, String timeZone) {
 	}
 
@@ -78,12 +78,11 @@ public class PlayerExportService {
 				select routine_slug, exercise_slug, abandoned_at from routine_abandonment
 				where player_id = ? order by abandoned_at
 				""", (row, index) -> new Abandonment(row.getString(1), row.getString(2), instant(row, 3)), playerId);
-		Match match = jdbc.query("select match_at, weekly, time_zone from match_reminder where player_id = ?",
-				(row, index) -> new Match(instant(row, 1), row.getBoolean(2), row.getString(3)), playerId)
-			.stream()
-			.findFirst()
-			.orElse(null);
-		return new Export(clock.instant(), profile, pain, programs, completions, abandonments, match);
+		List<Match> matches = jdbc.query("""
+				select match_at, weekly, time_zone from match_reminder
+				where player_id = ? order by match_at
+				""", (row, index) -> new Match(instant(row, 1), row.getBoolean(2), row.getString(3)), playerId);
+		return new Export(clock.instant(), profile, pain, programs, completions, abandonments, matches);
 	}
 
 	/** Igual en H2 y en PostgreSQL: el controlador JDBC entrega la fecha con su zona. */

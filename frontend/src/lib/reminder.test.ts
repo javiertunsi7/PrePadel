@@ -4,10 +4,12 @@ import {
   msUntilReminder,
   nextOccurrence,
   nextWeeklyMatch,
+  pendingReminders,
   pushSubscription,
   reminderTime,
 } from './reminder';
 
+// Noviembre de 2026: el día 10 es martes.
 const at = (hours: number, minutes: number, day = 10) => new Date(2026, 10, day, hours, minutes);
 
 describe('recordatorio ligado al partido', () => {
@@ -18,6 +20,16 @@ describe('recordatorio ligado al partido', () => {
   it('si esa hora ya ha pasado, el partido es mañana', () => {
     expect(nextOccurrence('09:30', at(16, 0))).toEqual(at(9, 30, 11));
     expect(nextOccurrence('16:00', at(16, 0))).toEqual(at(16, 0, 11));
+  });
+
+  it('se puede marcar otro día de la semana', () => {
+    expect(nextOccurrence('09:30', at(16, 0), 1)).toEqual(at(9, 30, 11));
+    expect(nextOccurrence('20:00', at(16, 0), 6)).toEqual(at(20, 0, 16));
+  });
+
+  it('el semanal de hoy a una hora que ya ha pasado empieza la semana que viene, no mañana', () => {
+    expect(nextOccurrence('09:30', at(16, 0), 0, true)).toEqual(at(9, 30, 17));
+    expect(nextOccurrence('19:00', at(16, 0), 0, true)).toEqual(at(19, 0, 10));
   });
 
   it('el aviso llega 30 minutos antes del partido', () => {
@@ -93,5 +105,32 @@ describe('partido semanal', () => {
 
   it('si la app lleva semanas sin abrirse, salta hasta el próximo que no haya pasado', () => {
     expect(nextWeeklyMatch(at(19, 0, 1), at(12, 0, 20))).toEqual(at(19, 0, 22));
+  });
+});
+
+describe('dos partidos semanales en días distintos', () => {
+  const monday = at(12, 0, 9);
+  const tuesday = at(19, 0, 10);
+  const thursday = at(20, 0, 12);
+
+  it('el lunes se marcan el del martes y el del jueves', () => {
+    expect(nextOccurrence('19:00', monday, 1, true)).toEqual(tuesday);
+    expect(nextOccurrence('20:00', monday, 3, true)).toEqual(thursday);
+  });
+
+  it('cada uno avisa 30 minutos antes de su hora, con la app abierta', () => {
+    const matches = [{ at: tuesday.toISOString() }, { at: thursday.toISOString() }];
+    const until = (reminder: Date, now: Date) => reminder.getTime() - now.getTime();
+
+    expect(pendingReminders(matches, monday)).toEqual([until(at(18, 30, 10), monday), until(at(19, 30, 12), monday)]);
+    // Pasado el aviso del martes solo queda el del jueves.
+    expect(pendingReminders(matches, at(18, 45, 10))).toEqual([until(at(19, 30, 12), at(18, 45, 10))]);
+    expect(pendingReminders(matches, at(19, 45, 12))).toEqual([]);
+  });
+
+  it('jugados los dos, cada uno pasa a su mismo día y hora de la semana siguiente', () => {
+    const friday = at(12, 0, 13);
+    expect(nextWeeklyMatch(tuesday, friday)).toEqual(at(19, 0, 17));
+    expect(nextWeeklyMatch(thursday, friday)).toEqual(at(20, 0, 19));
   });
 });

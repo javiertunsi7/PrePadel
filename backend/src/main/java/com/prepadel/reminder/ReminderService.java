@@ -6,6 +6,7 @@ import java.time.DateTimeException;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.http.HttpStatus;
@@ -14,16 +15,25 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-/** Aviso de calentamiento 30 minutos antes del partido, aunque la app esté cerrada. */
+/** Aviso de calentamiento 30 minutos antes de cada partido, aunque la app esté cerrada. */
 @Service
 public class ReminderService {
 
 	static final Duration LEAD = Duration.ofMinutes(30);
 
+	/** Partidos con aviso por jugador, de sobra para quien juega varios días por semana. La app tiene el mismo. */
+	static final int MAX_MATCHES = 4;
+
+	/**
+	 * El partido de cuando solo cabía uno por jugador. La migración V8 le dio este id, la app
+	 * lo conoce igual al actualizarse y es el que usa la ruta antigua (POST /api/me/reminder).
+	 */
+	static final UUID LEGACY_MATCH = new UUID(0, 0);
+
 	/** Pasado este tiempo desde el partido, la suscripción guardada ya no hace falta y se borra. */
 	private static final Duration KEEP_AFTER_MATCH = Duration.ofHours(24);
 
-	/** Nadie marca un partido a más de una semana vista: la app solo pregunta la hora de hoy o mañana. */
+	/** Nadie marca un partido a más de una semana vista: la app deja elegir entre los próximos siete días. */
 	private static final Duration MAX_AHEAD = Duration.ofDays(7);
 
 	private static final ZoneId DEFAULT_ZONE = ZoneId.of("Europe/Madrid");
@@ -38,14 +48,10 @@ public class ReminderService {
 		this.clock = clock;
 	}
 
-	/** Guarda el partido del jugador, o cancela el aviso si no trae hora o suscripción. */
+	/** Guarda un partido del jugador o, si ya lo tenía, le cambia la hora. Su aviso queda pendiente. */
 	@Transactional
-	public void set(UUID playerId, ReminderRequest request) {
+	public void save(UUID playerId, MatchRequest request) {
 		ReminderRequest.Subscription subscription = request.subscription();
-		if (request.matchAt() == null || subscription == null) {
-			repository.deleteById(playerId);
-			return;
-		}
 		if (!WebPushGateway.isPushService(subscription.endpoint())) {
 			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Suscripción de notificaciones no admitida");
 		}
@@ -54,12 +60,36 @@ public class ReminderService {
 		}
 		boolean weekly = Boolean.TRUE.equals(request.weekly());
 		ZoneId zone = zoneOf(request.timeZone());
-		repository.findById(playerId)
-			.ifPresentOrElse(
-					existing -> existing.schedule(subscription.endpoint(), subscription.p256dh(), subscription.auth(),
-							request.matchAt(), weekly, zone),
-					() -> repository.save(new MatchReminder(playerId, subscription.endpoint(), subscription.p256dh(),
-							subscription.auth(), request.matchAt(), weekly, zone)));
+		Optional<MatchReminder> existing = repository.findById(new MatchReminder.Key(playerId, request.id()));
+		if (existing.isPresent()) {
+			existing.get()
+				.schedule(subscription.endpoint(), subscription.p256dh(), subscription.auth(), request.matchAt(),
+						weekly, zone);
+			return;
+		}
+		if (repository.countByPlayerId(playerId) >= MAX_MATCHES) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+					"Como mucho " + MAX_MATCHES + " partidos con aviso");
+		}
+		repository.save(new MatchReminder(playerId, request.id(), subscription.endpoint(), subscription.p256dh(),
+				subscription.auth(), request.matchAt(), weekly, zone));
+	}
+
+	/** Quita un partido del jugador y su aviso. Si ya no estaba, no hace nada. */
+	@Transactional
+	public void remove(UUID playerId, UUID matchId) {
+		repository.deleteById(new MatchReminder.Key(playerId, matchId));
+	}
+
+	/** Ruta antigua, de un solo partido: guarda {@link #LEGACY_MATCH}, o lo quita si no trae hora o suscripción. */
+	@Transactional
+	public void setLegacyMatch(UUID playerId, ReminderRequest request) {
+		if (request.matchAt() == null || request.subscription() == null) {
+			remove(playerId, LEGACY_MATCH);
+		} else {
+			save(playerId, new MatchRequest(LEGACY_MATCH, request.matchAt(), request.subscription(), request.weekly(),
+					request.timeZone()));
+		}
 	}
 
 	@Transactional

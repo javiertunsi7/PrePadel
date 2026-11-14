@@ -1,10 +1,13 @@
 package com.prepadel.player;
 
+import java.util.UUID;
+
 import com.prepadel.pain.PainRequest;
 import com.prepadel.pain.PainService;
 import com.prepadel.progress.AbandonmentRequest;
 import com.prepadel.progress.CompletionRequest;
 import com.prepadel.progress.ProgressService;
+import com.prepadel.reminder.MatchRequest;
 import com.prepadel.reminder.ReminderRequest;
 import com.prepadel.reminder.ReminderService;
 
@@ -17,6 +20,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -98,10 +102,23 @@ public class PlayerController {
 		return stateService.stateOf(player);
 	}
 
-	/** Hora del próximo partido, para avisar 30 minutos antes aunque la app esté cerrada. */
+	/** Un partido (o su cambio de hora), para avisar 30 minutos antes aunque la app esté cerrada. */
+	@PostMapping("/me/matches")
+	public PlayerState saveMatch(@CurrentPlayer Player player, @Valid @RequestBody MatchRequest request) {
+		reminderService.save(player.getId(), request);
+		return stateService.stateOf(player);
+	}
+
+	@DeleteMapping("/me/matches/{matchId}")
+	public PlayerState removeMatch(@CurrentPlayer Player player, @PathVariable UUID matchId) {
+		reminderService.remove(player.getId(), matchId);
+		return stateService.stateOf(player);
+	}
+
+	/** Formato antiguo, de un solo partido: lo que quede en la cola de móviles sin actualizar. */
 	@PostMapping("/me/reminder")
 	public PlayerState remind(@CurrentPlayer Player player, @Valid @RequestBody ReminderRequest request) {
-		reminderService.set(player.getId(), request);
+		reminderService.setLegacyMatch(player.getId(), request);
 		return stateService.stateOf(player);
 	}
 

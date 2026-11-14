@@ -119,6 +119,7 @@ export function fakeApi(overrides: Partial<Api> = {}): Api {
     deleteMe: vi.fn(async () => undefined),
     exportMe: vi.fn(async () => ({ profile: { age: 47 }, pain: [] })),
     send: vi.fn(async () => playerState()),
+    remove: vi.fn(async () => playerState()),
     ...overrides,
   };
 }
@@ -138,6 +139,7 @@ export function storeWithState(state: PlayerState): Promise<AppStore> {
       register: vi.fn(async () => ({ token: 'token-de-prueba', state })),
       me: vi.fn(async () => state),
       send: vi.fn(async () => state),
+      remove: vi.fn(async () => state),
     }),
   );
 }

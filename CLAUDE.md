@@ -15,9 +15,9 @@ El MVP son cinco funcionalidades y están construidas:
 2. Rutina del día: calentamiento y recuperación, con temporizador y voz. Es la pantalla principal.
 3. Programa de 4 semanas por zona, con progresión de carga.
 4. Registro de dolor en un toque (0 a 10) y regla de "para y consulta".
-5. Recordatorio 30 min antes del partido: la app lo lanza si está abierta y el servidor lo
-   manda por Web Push si está cerrada (con claves `prepadel.push.*`; sin probar en móvil real).
-   Puede repetirse cada semana.
+5. Recordatorio 30 min antes de cada partido (hasta 4 a la vez): la app lo lanza si está
+   abierta y el servidor lo manda por Web Push si está cerrada (con claves `prepadel.push.*`;
+   sin probar en móvil real). Cada partido puede repetirse cada semana.
 
 Añadidos aprobados por Javier fuera de las cinco: partido semanal, "Descargar mis datos" y
 código de club (enlace `/?club=código` para medir la retención por club en el panel).
@@ -49,8 +49,8 @@ Dentro de una tarea:
 ## Reglas que no se rompen
 
 - **Rutinas como datos.** Ejercicios, duraciones y progresiones viven en tablas, no en código.
-  El contenido se cambia con una migración nueva (`V8__...sql`). Las ya existentes (`V1` a
-  `V7`) no se editan: Flyway lo comprueba.
+  El contenido se cambia con una migración nueva (`V9__...sql`). Las ya existentes (`V1` a
+  `V8`) no se editan: Flyway lo comprueba.
 - **Offline first.** Todo lo que el jugador hace debe funcionar sin cobertura: pasa por la
   cola de `frontend/src/lib/store.tsx` y `sync.ts`.
 - **Manos libres.** Voz, pitidos, cuenta atrás gigante, letra y botones grandes.
@@ -71,14 +71,16 @@ backend/src/main/java/com/prepadel/
   player/    cuestionario, token, estado          POST /api/players, GET|DELETE /api/me,
              (PlayerController tiene la API        GET /api/me/export,
               del jugador)                         POST /api/me/{enrollment,completions,
-                                                        abandonments,reminder,pain}
+                                                        abandonments,matches,pain},
+                                                   DELETE /api/me/matches/{id}
+             (POST /api/me/reminder: formato de un solo partido, para colas antiguas)
              RegistrationRateLimiter: tope de altas por IP y hora (prepadel.rate-limit.*)
              Clubs: códigos de club que se aceptan en el alta (prepadel.clubs)
   risk/      RiskProfileService: pesos del perfil de riesgo
   pain/      PainRules, PainAlertService; umbrales prepadel.pain.* en application.properties
   progress/  programa activo, rutinas completadas y abandonadas
-  reminder/  aviso del partido con la app cerrada (también semanal): WebPush (cifrado y
-             firma, sin librerías), envío programado; solo a servicios de push conocidos
+  reminder/  aviso de cada partido con la app cerrada (hasta 4, también semanales): WebPush
+             (cifrado y firma, sin librerías), envío programado; solo a servicios de push conocidos
   review/    revisión del fisio pieza a pieza      GET /api/review, PUT /api/review/{reviewer,
              con huella del contenido               items/{clave}} (prepadel.review.password)
   stats/     panel de retención, solo totales     GET /api/admin/{panel,stats}
@@ -91,7 +93,7 @@ backend/src/main/java/com/prepadel/
 backend/src/main/resources/db/migration/   V1 esquema, V2 contenido inicial,
                                            V3 rutinas abandonadas, V4 aviso del partido,
                                            V5 revisión del fisio, V6 partido semanal,
-                                           V7 club del jugador
+                                           V7 club del jugador, V8 varios partidos por jugador
 
 frontend/src/
   App.tsx         rutas: / , /programas[/:slug], /dolor, /perfil[/ejercicios], /rutina/:slug, /bienvenida,

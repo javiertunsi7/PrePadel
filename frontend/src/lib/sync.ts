@@ -11,8 +11,19 @@ export type Mutation =
   | { kind: 'completion'; id: string; routineSlug: string; completedAt: string }
   | { kind: 'pain'; id: string; zone: string; score: number; context: PainContext; recordedAt: string }
   | { kind: 'enroll'; id: string; programSlug: string }
-  // Salir de una rutina a medias: no cambia nada en la app, solo cuenta para saber dónde se abandona.
-  // Hora del partido para el aviso con la app cerrada; sin hora, se cancela.
+  // Partido con aviso del servidor (app cerrada). Volver a enviar el mismo matchId le cambia la hora.
+  | {
+      kind: 'match';
+      id: string;
+      matchId: string;
+      matchAt: string;
+      weekly: boolean;
+      timeZone: string | null;
+      subscription: PushTarget;
+    }
+  | { kind: 'match-removal'; id: string; matchId: string }
+  // Formato antiguo, de cuando solo cabía un partido: solo llega de colas guardadas antes de
+  // admitir varios. Hora del partido para el aviso con la app cerrada; sin hora, se cancela.
   | {
       kind: 'reminder';
       id: string;
@@ -21,17 +32,23 @@ export type Mutation =
       weekly: boolean;
       timeZone: string | null;
     }
+  // Salir de una rutina a medias: no cambia nada en la app, solo cuenta para saber dónde se abandona.
   | { kind: 'abandonment'; id: string; routineSlug: string; exerciseSlug: string; abandonedAt: string };
 
-export function toRequest(mutation: Mutation): { path: string; body: unknown } {
+/** Petición al servidor para una acción. Todas devuelven el estado del jugador. */
+export type ApiRequest = { method: 'POST'; path: string; body: unknown } | { method: 'DELETE'; path: string };
+
+export function toRequest(mutation: Mutation): ApiRequest {
   switch (mutation.kind) {
     case 'completion':
       return {
+        method: 'POST',
         path: '/me/completions',
         body: { id: mutation.id, routineSlug: mutation.routineSlug, completedAt: mutation.completedAt },
       };
     case 'pain':
       return {
+        method: 'POST',
         path: '/me/pain',
         body: {
           id: mutation.id,
@@ -42,9 +59,24 @@ export function toRequest(mutation: Mutation): { path: string; body: unknown } {
         },
       };
     case 'enroll':
-      return { path: '/me/enrollment', body: { programSlug: mutation.programSlug } };
+      return { method: 'POST', path: '/me/enrollment', body: { programSlug: mutation.programSlug } };
+    case 'match':
+      return {
+        method: 'POST',
+        path: '/me/matches',
+        body: {
+          id: mutation.matchId,
+          matchAt: mutation.matchAt,
+          weekly: mutation.weekly,
+          timeZone: mutation.timeZone,
+          subscription: mutation.subscription,
+        },
+      };
+    case 'match-removal':
+      return { method: 'DELETE', path: `/me/matches/${encodeURIComponent(mutation.matchId)}` };
     case 'reminder':
       return {
+        method: 'POST',
         path: '/me/reminder',
         body: {
           matchAt: mutation.matchAt,
@@ -55,6 +87,7 @@ export function toRequest(mutation: Mutation): { path: string; body: unknown } {
       };
     case 'abandonment':
       return {
+        method: 'POST',
         path: '/me/abandonments',
         body: {
           id: mutation.id,
@@ -70,6 +103,8 @@ export function toRequest(mutation: Mutation): { path: string; body: unknown } {
 export function applyOptimistic(state: PlayerState, mutation: Mutation, content: Content | null): PlayerState {
   switch (mutation.kind) {
     case 'abandonment':
+    case 'match':
+    case 'match-removal':
     case 'reminder':
       return state;
     case 'completion': {

@@ -83,6 +83,8 @@ export const api = {
   exportMe: (token: string) => request<unknown>('/me/export', {}, token),
   /** Acciones del jugador: todas devuelven su estado actualizado. */
   send: (token: string, path: string, body: unknown) => post<PlayerState>(path, body, token),
+  /** Quitar algo del jugador (un partido); también devuelve su estado actualizado. */
+  remove: (token: string, path: string) => request<PlayerState>(path, { method: 'DELETE' }, token),
 };
 
 export type Api = typeof api;
