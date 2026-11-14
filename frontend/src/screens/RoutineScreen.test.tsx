@@ -1,10 +1,18 @@
-import { screen, within } from '@testing-library/react';
+import { act, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Route, Routes } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 import type { AppStore } from '../lib/store';
-import { fakeApi, registeredStore, renderApp } from '../test/fixtures';
+import type { PainAlert } from '../lib/types';
+import { fakeApi, playerState, registeredStore, renderApp, storeWithState } from '../test/fixtures';
 import { RoutineScreen } from './RoutineScreen';
+
+const elbowStop: PainAlert = { zone: 'ELBOW', kind: 'HIGH_PAIN', message: 'Codo: dolor de 8/10. Para y consulta.' };
+const elbowLingering: PainAlert = {
+  zone: 'ELBOW',
+  kind: 'PERSISTENT_PAIN',
+  message: 'Codo: llevas días con molestias. Consulta.',
+};
 
 function renderRoutine(store: AppStore, slug: string) {
   return renderApp(
@@ -150,6 +158,62 @@ describe('pantalla de rutina', () => {
         expect.objectContaining({ routineSlug: 'codo-semana-1', exerciseSlug: expect.any(String) }),
       ),
     );
+  });
+
+  it('si el dolor de la zona pide parar, avisa y pide confirmación antes de empezar', async () => {
+    const user = userEvent.setup();
+    renderRoutine(await storeWithState(playerState({ alerts: [elbowStop] })), 'codo-semana-1');
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Codo: dolor de 8/10');
+    await user.click(screen.getByRole('button', { name: 'Empezar' }));
+    expect(screen.queryByRole('timer')).not.toBeInTheDocument();
+    expect(screen.getByText(/¿Quieres empezar igualmente\?/)).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Sí, empezar igualmente' }));
+    expect(screen.getByText('Prepárate')).toBeInTheDocument();
+    expect(screen.getByRole('timer')).toHaveTextContent('5');
+  });
+
+  it('con ese aviso, decir que no vuelve atrás sin empezar', async () => {
+    const user = userEvent.setup();
+    renderRoutine(await storeWithState(playerState({ alerts: [elbowStop] })), 'codo-semana-1');
+
+    await user.click(screen.getByRole('button', { name: 'Empezar' }));
+    await user.click(screen.getByRole('button', { name: 'No, volver' }));
+
+    expect(await screen.findByText('Pantalla de inicio')).toBeInTheDocument();
+  });
+
+  it('al registrar que el dolor ha bajado, se puede empezar sin confirmar', async () => {
+    const user = userEvent.setup();
+    const paused = playerState({ alerts: [elbowStop] });
+    const store = await registeredStore(
+      fakeApi({
+        register: vi.fn(async () => ({ token: 'token-de-prueba', state: paused })),
+        me: vi.fn(async () => paused),
+        send: vi.fn(async () => playerState()),
+      }),
+    );
+    renderRoutine(store, 'codo-semana-1');
+    expect(screen.getByRole('alert')).toBeInTheDocument();
+
+    await act(async () => store.logPain('ELBOW', 3));
+
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Empezar' }));
+    expect(screen.getByText('Prepárate')).toBeInTheDocument();
+  });
+
+  it.each([
+    ['el calentamiento, que no es de ninguna zona,', 'calentamiento-prepartido', elbowStop],
+    ['una rutina con molestias que solo piden consultar', 'codo-semana-1', elbowLingering],
+  ])('%s empieza sin pedir confirmación', async (_, slug, alert) => {
+    const user = userEvent.setup();
+    renderRoutine(await storeWithState(playerState({ alerts: [alert] })), slug);
+
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Empezar' }));
+    expect(screen.getByText('Prepárate')).toBeInTheDocument();
   });
 
   it('una rutina que no existe devuelve a inicio', async () => {

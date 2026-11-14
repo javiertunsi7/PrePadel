@@ -477,6 +477,22 @@ input {
   border-radius: 16px;
 }
 
+/* Programa en pausa por dolor: el texto y, debajo, los botones (registrar dolor, o empezar igualmente). */
+.paused {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Opaco: en la ficha del programa y en la rutina va fijo abajo y el contenido pasa por detrás. */
+.paused p {
+  margin: 0;
+  padding: 12px 14px;
+  font-weight: 700;
+  background: var(--paper);
+  border-radius: 16px;
+}
+
 /* ------------------------------------------------------- Barra de pestañas */
 
 .tabbar {

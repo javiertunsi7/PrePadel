@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router';
-import { SessionDots } from '../components/Bits';
+import { AlertCard, SessionDots } from '../components/Bits';
 import { ExerciseMedia, ExerciseSheet, ExerciseThumb, hasMedia } from '../components/ExerciseSheet';
 import {
   BackIcon,
@@ -16,8 +16,8 @@ import {
 import { Mascot } from '../components/Mascot';
 import { PainScale } from '../components/PainScale';
 import { Ring } from '../components/Ring';
-import { DISCLAIMER, KIND_LABEL } from '../lib/copy';
-import { formatClock, formatMinutes, formatSeconds } from '../lib/derive';
+import { DISCLAIMER, KIND_LABEL, PAUSED_ROUTINE_QUESTION } from '../lib/copy';
+import { formatClock, formatMinutes, formatSeconds, pausingAlert } from '../lib/derive';
 import { useScrollToTop, useWakeLock } from '../lib/hooks';
 import {
   advance,
@@ -31,7 +31,7 @@ import {
   type Playback,
 } from '../lib/player';
 import { useAppState, useStore } from '../lib/store';
-import type { Routine, Step } from '../lib/types';
+import type { PainAlert, Routine, Step } from '../lib/types';
 import { beep, hush, say, unlockAudio } from '../lib/voice';
 import { zoneVars } from '../lib/zones';
 
@@ -52,7 +52,7 @@ export function RoutineScreen() {
 
 function RoutineRunner({ routine }: { routine: Routine }) {
   const store = useStore();
-  const { settings } = useAppState();
+  const { settings, me } = useAppState();
   const navigate = useNavigate();
   const location = useLocation();
   const [playback, setPlayback] = useState<Playback | null>(null);
@@ -127,6 +127,7 @@ function RoutineRunner({ routine }: { routine: Routine }) {
     return (
       <Overview
         routine={routine}
+        pausedBy={pausingAlert(me?.alerts ?? [], routine.zone)}
         voice={settings.voice}
         onToggleVoice={toggleVoice}
         onBack={goBack}
@@ -266,18 +267,22 @@ function RoutineRunner({ routine }: { routine: Routine }) {
 
 function Overview({
   routine,
+  pausedBy,
   voice,
   onToggleVoice,
   onBack,
   onStart,
 }: {
   routine: Routine;
+  /** Aviso de "para y consulta" en la zona de la rutina: avisa y pide confirmar antes de empezar. */
+  pausedBy: PainAlert | undefined;
   voice: boolean;
   onToggleVoice: () => void;
   onBack: () => void;
   onStart: () => void;
 }) {
   const [opened, setOpened] = useState<Step | null>(null);
+  const [confirming, setConfirming] = useState(false);
 
   return (
     <main className="screen detail" style={zoneVars(routine.zone)}>
@@ -294,6 +299,8 @@ function Overview({
           <span className="chip">{routine.steps.length} ejercicios</span>
         </div>
       </header>
+
+      {pausedBy && <AlertCard alert={pausedBy} />}
 
       {routine.equipment.length > 0 && (
         <p className="note">
@@ -327,9 +334,24 @@ function Overview({
       <p className="muted small">{DISCLAIMER} Si notas un dolor agudo, para.</p>
 
       <div className="sticky-cta">
-        <button className="btn btn--primary btn--block btn--big" onClick={onStart}>
-          <PlayIcon /> Empezar
-        </button>
+        {pausedBy && confirming ? (
+          <div className="paused">
+            <p>{PAUSED_ROUTINE_QUESTION}</p>
+            <button className="btn btn--secondary btn--block" onClick={onStart}>
+              Sí, empezar igualmente
+            </button>
+            <button className="btn btn--ghost btn--block" onClick={onBack}>
+              No, volver
+            </button>
+          </div>
+        ) : (
+          <button
+            className="btn btn--primary btn--block btn--big"
+            onClick={pausedBy ? () => setConfirming(true) : onStart}
+          >
+            <PlayIcon /> Empezar
+          </button>
+        )}
       </div>
 
       {opened && (

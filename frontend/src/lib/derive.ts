@@ -1,4 +1,4 @@
-import type { Completion } from './types';
+import type { Completion, PainAlert } from './types';
 
 // "Hoy" es el día del móvil del jugador, no el del servidor: por eso se calcula aquí.
 
@@ -66,4 +66,9 @@ export function daysAgoLabel(date: Date, now: Date): string {
     return 'hoy';
   }
   return days === 1 ? 'ayer' : `hace ${days} días`;
+}
+
+/** Aviso de "para y consulta" de una zona: mientras exista, el programa de esa zona está en pausa. */
+export function pausingAlert(alerts: PainAlert[], zone: string | null): PainAlert | undefined {
+  return alerts.find((alert) => alert.kind === 'HIGH_PAIN' && alert.zone === zone);
 }
