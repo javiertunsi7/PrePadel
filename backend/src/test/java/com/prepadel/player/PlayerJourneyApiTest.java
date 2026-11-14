@@ -226,6 +226,38 @@ class PlayerJourneyApiTest {
 		mvc.perform(get("/api/me/export")).andExpect(status().isUnauthorized());
 	}
 
+	@Test
+	void aClubLinkIsKeptOnlyForConfiguredClubsAndNeverBlocksTheQuestionnaire() throws Exception {
+		assertThat(clubOf(registerFromClub("\" Club-De-Prueba \""))).isEqualTo("club-de-prueba");
+		assertThat(clubOf(registerFromClub("\"club-inventado\""))).isNull();
+		assertThat(clubOf(registerFromClub("\"<b>club</b>\""))).isNull();
+		assertThat(clubOf(registerFromClub("null"))).isNull();
+		assertThat(clubOf(register(0, 0, 0))).isNull();
+	}
+
+	private String registerFromClub(String clubJson) throws Exception {
+		String body = mvc.perform(post("/api/players").contentType(MediaType.APPLICATION_JSON).content("""
+				{"age": 47, "weeklyHours": 4, "level": "INTERMEDIATE",
+				 "discomfort": {"ELBOW": 0, "SHOULDER": 0, "KNEE": 0},
+				 "healthDataConsent": true, "club": %s}
+				""".formatted(clubJson)))
+				.andExpect(status().isCreated())
+				.andReturn()
+				.getResponse()
+				.getContentAsString(StandardCharsets.UTF_8);
+		return JsonPath.read(body, "$.token");
+	}
+
+	/** El club que guarda el servidor, tal y como sale en la descarga de datos del jugador. */
+	private String clubOf(String token) throws Exception {
+		String body = mvc.perform(get("/api/me/export").header(HttpHeaders.AUTHORIZATION, bearer(token)))
+				.andExpect(status().isOk())
+				.andReturn()
+				.getResponse()
+				.getContentAsString(StandardCharsets.UTF_8);
+		return JsonPath.read(body, "$.profile.club");
+	}
+
 	private String register(int elbow, int shoulder, int knee) throws Exception {
 		String body = mvc.perform(post("/api/players").contentType(MediaType.APPLICATION_JSON).content("""
 				{"age": 47, "weeklyHours": 4, "level": "INTERMEDIATE",

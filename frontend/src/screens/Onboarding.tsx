@@ -5,6 +5,7 @@ import { BackIcon, PainIcon, ProgramsIcon, TodayIcon, ZoneIcon } from '../compon
 import { Mascot } from '../components/Mascot';
 import { PainScale } from '../components/PainScale';
 import { ApiError, TooManyRequestsError } from '../lib/api';
+import { pendingClub } from '../lib/club';
 import { DISCLAIMER, painRuleText } from '../lib/copy';
 import { useScrollToTop } from '../lib/hooks';
 import { useAppState, useStore } from '../lib/store';
@@ -26,6 +27,7 @@ export function Onboarding() {
   const navigate = useNavigate();
   // Quien ya tiene plan no repite el cuestionario; quien lo acaba de crear se queda a ver el resultado.
   const [alreadyRegistered] = useState(() => store.getState().me !== null);
+  const [fromClub] = useState(() => pendingClub() !== null);
   const [step, setStep] = useState<StepName>('welcome');
   const [age, setAge] = useState('');
   const [weeklyHours, setWeeklyHours] = useState(3);
@@ -304,6 +306,12 @@ export function Onboarding() {
               No te pedimos nombre ni email. Guardamos tus respuestas y tu registro de dolor, que son datos de salud,
               para adaptar tu plan. Puedes borrarlos cuando quieras desde Perfil.
             </p>
+            {fromClub && (
+              <p>
+                Has entrado con el enlace de tu club: guardamos también de qué club vienes, solo para contar cuántos
+                jugadores de cada club usan la app.
+              </p>
+            )}
             <label className="check">
               <input type="checkbox" checked={consent} onChange={(event) => setConsent(event.target.checked)} />
               <span>Doy mi consentimiento para que PrePádel guarde estos datos de salud.</span>

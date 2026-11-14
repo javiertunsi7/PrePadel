@@ -19,7 +19,8 @@ El MVP son cinco funcionalidades y están construidas:
    manda por Web Push si está cerrada (con claves `prepadel.push.*`; sin probar en móvil real).
    Puede repetirse cada semana.
 
-Añadidos aprobados por Javier fuera de las cinco: partido semanal y "Descargar mis datos".
+Añadidos aprobados por Javier fuera de las cinco: partido semanal, "Descargar mis datos" y
+código de club (enlace `/?club=código` para medir la retención por club en el panel).
 
 **Fuera del MVP, no se construye:** nutrición, integración con relojes, comunidad o funciones
 sociales, análisis de vídeo.
@@ -48,8 +49,8 @@ Dentro de una tarea:
 ## Reglas que no se rompen
 
 - **Rutinas como datos.** Ejercicios, duraciones y progresiones viven en tablas, no en código.
-  El contenido se cambia con una migración nueva (`V7__...sql`). Las ya existentes (`V1` a
-  `V6`) no se editan: Flyway lo comprueba.
+  El contenido se cambia con una migración nueva (`V8__...sql`). Las ya existentes (`V1` a
+  `V7`) no se editan: Flyway lo comprueba.
 - **Offline first.** Todo lo que el jugador hace debe funcionar sin cobertura: pasa por la
   cola de `frontend/src/lib/store.tsx` y `sync.ts`.
 - **Manos libres.** Voz, pitidos, cuenta atrás gigante, letra y botones grandes.
@@ -72,6 +73,7 @@ backend/src/main/java/com/prepadel/
               del jugador)                         POST /api/me/{enrollment,completions,
                                                         abandonments,reminder,pain}
              RegistrationRateLimiter: tope de altas por IP y hora (prepadel.rate-limit.*)
+             Clubs: códigos de club que se aceptan en el alta (prepadel.clubs)
   risk/      RiskProfileService: pesos del perfil de riesgo
   pain/      PainRules, PainAlertService; umbrales prepadel.pain.* en application.properties
   progress/  programa activo, rutinas completadas y abandonadas
@@ -80,6 +82,7 @@ backend/src/main/java/com/prepadel/
   review/    revisión del fisio pieza a pieza      GET /api/review, PUT /api/review/{reviewer,
              con huella del contenido               items/{clave}} (prepadel.review.password)
   stats/     panel de retención, solo totales     GET /api/admin/{panel,stats}
+             (también por club)
              (contraseña prepadel.admin.password; vacía = 404)
   web/       en producción sirve la web construida junto a la API; PasswordGate (contraseña
              de las páginas internas);
@@ -87,13 +90,14 @@ backend/src/main/java/com/prepadel/
              otro dominio, hay que añadirlo ahí)
 backend/src/main/resources/db/migration/   V1 esquema, V2 contenido inicial,
                                            V3 rutinas abandonadas, V4 aviso del partido,
-                                           V5 revisión del fisio, V6 partido semanal
+                                           V5 revisión del fisio, V6 partido semanal,
+                                           V7 club del jugador
 
 frontend/src/
   App.tsx         rutas: / , /programas[/:slug], /dolor, /perfil[/ejercicios], /rutina/:slug, /bienvenida,
                   /revision (fisio, carga aparte)
   lib/            api, store (estado + cola offline), sync, player (reproductor puro),
-                  voice, reminder, derive, types, copy (textos), zones
+                  voice, reminder, derive, types, copy (textos), zones, club (enlace de club)
   screens/        una pantalla por ruta
   components/     Mascot, Icons, PainScale, Ring, TabBar, ExerciseSheet, Bits
   illustrations/  catalog.ts (posturas por slug de ejercicio), engine.ts (animación),

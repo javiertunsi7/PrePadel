@@ -177,4 +177,6 @@ export interface OnboardingAnswers {
   /** Molestia actual de 0 a 10 por código de zona. */
   discomfort: Record<string, number>;
   healthDataConsent: boolean;
+  /** Club con cuyo enlace se abrió la app (lib/club.ts); el servidor ignora los que no conoce. */
+  club?: string;
 }

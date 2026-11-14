@@ -120,6 +120,30 @@ describe('cuestionario inicial', () => {
     expect(alert).not.toHaveTextContent('No hay conexión');
   });
 
+  it('si llegó con el enlace de un club, lo explica y lo manda con el cuestionario', async () => {
+    localStorage.setItem('prepadel.club', JSON.stringify('padel-elche'));
+    const user = userEvent.setup();
+    const api = fakeApi();
+    renderOnboarding(new AppStore(api));
+
+    await answerQuestions(user);
+    expect(screen.getByText(/guardamos también de qué club vienes/)).toBeInTheDocument();
+    await user.click(screen.getByRole('checkbox'));
+    await user.click(screen.getByRole('button', { name: 'Crear mi plan' }));
+
+    expect(await screen.findByRole('heading', { name: 'Tu punto de partida' })).toBeInTheDocument();
+    expect(api.register).toHaveBeenCalledWith(expect.objectContaining({ club: 'padel-elche' }));
+  });
+
+  it('sin enlace de club no menciona ningún club', async () => {
+    const user = userEvent.setup();
+    renderOnboarding(new AppStore(fakeApi()));
+
+    await answerQuestions(user);
+
+    expect(screen.queryByText(/de qué club vienes/)).not.toBeInTheDocument();
+  });
+
   it('quien ya tiene plan va directo a inicio', async () => {
     renderOnboarding(await registeredStore(fakeApi()));
 

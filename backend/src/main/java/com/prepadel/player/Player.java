@@ -34,17 +34,21 @@ public class Player {
 
 	private Instant createdAt;
 
+	/** Club de prepadel.clubs cuyo enlace usó para llegar, o null. Solo para la retención por club del panel. */
+	private String clubCode;
+
 	protected Player() {
 	}
 
 	public Player(UUID id, String tokenHash, int age, int weeklyHours, SkillLevel skillLevel, String consentVersion,
-			Instant now) {
+			String clubCode, Instant now) {
 		this.id = id;
 		this.tokenHash = tokenHash;
 		this.age = age;
 		this.weeklyHours = weeklyHours;
 		this.skillLevel = skillLevel;
 		this.consentVersion = consentVersion;
+		this.clubCode = clubCode;
 		this.consentAt = now;
 		this.createdAt = now;
 	}

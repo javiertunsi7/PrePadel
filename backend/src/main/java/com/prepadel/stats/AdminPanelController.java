@@ -4,6 +4,7 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 
 import com.prepadel.stats.RetentionStats.AbandonedExercise;
+import com.prepadel.stats.RetentionStats.ClubRetention;
 import com.prepadel.web.PasswordGate;
 
 import jakarta.servlet.http.HttpServletResponse;
@@ -109,6 +110,8 @@ public class AdminPanelController {
 				<h2>¿Vuelven en su segunda semana?</h2>
 				<p>%s</p>
 				<p class="muted">De los jugadores con 14 días o más desde el alta, los que terminaron alguna rutina entre el día 7 y el 14.</p>
+				<h2>Por club</h2>
+				%s
 				<h2>Rutinas terminadas en 30 días</h2>
 				<p>%s</p>
 				<p class="muted">Sobre las que se terminan o se dejan con el botón «Salir». Cerrar la app sin pulsarlo no se registra.</p>
@@ -120,7 +123,30 @@ public class AdminPanelController {
 				</body>
 				</html>
 				""".formatted(WHEN.format(stats.generatedAt()), stats.players(), stats.newPlayers7d(), stats.active7d(),
-				stats.active30d(), retention, finished, rows);
+				stats.active30d(), retention, clubs(stats), finished, rows);
+	}
+
+	/** Tabla por club, o cómo empezar si todavía no hay ninguno. */
+	private static String clubs(RetentionStats stats) {
+		if (stats.clubs().stream().allMatch(club -> club.club() == null)) {
+			return "<p>Ningún club todavía. Cómo dar a un club su enlace: docs/despliegue.md.</p>";
+		}
+		StringBuilder rows = new StringBuilder();
+		for (ClubRetention club : stats.clubs()) {
+			String back = club.retentionPercent() == null ? "Aún nadie con 14 días"
+					: "%d de %d (%d %%)".formatted(club.retained(), club.cohort(), club.retentionPercent());
+			rows.append("<tr><td>").append(club.club() == null ? "Sin club" : HtmlUtils.htmlEscape(club.club()))
+				.append("</td><td class=\"n\">").append(club.players())
+				.append("</td><td class=\"n\">").append(club.active7d())
+				.append("</td><td>").append(back).append("</td></tr>");
+		}
+		return """
+				<table>
+				<tr><th>Club</th><th class="n">Jugadores</th><th class="n">Activos en 7 días</th><th>Vuelven en su segunda semana</th></tr>
+				%s
+				</table>
+				<p class="muted">Según el enlace con el que llegaron (/?club=código). «Sin club»: llegaron sin enlace de club.</p>
+				""".formatted(rows);
 	}
 
 }

@@ -100,7 +100,9 @@ El backend no cambiaría: la API ya está separada.
 8. **Analítica (hecho, sin servicios externos).** Panel propio en `/api/admin/panel`, con la
    contraseña de `PREPADEL_ADMIN_PASSWORD`: jugadores activos, cuántos vuelven en su segunda
    semana y en qué ejercicio se sale de las rutinas. El abandono se anota cuando el jugador
-   pulsa "Salir" en mitad de una rutina; cerrar la app sin más no se registra.
+   pulsa "Salir" en mitad de una rutina; cerrar la app sin más no se registra. La retención
+   sale también por club: cada club reparte su enlace `/?club=código` (clubes en
+   `PREPADEL_CLUBS`, ver [despliegue.md](despliegue.md)).
 9. **Editor de contenido.** Hoy las rutinas se cambian con migraciones SQL. El fisio ya puede
    revisarlas y comentarlas desde `/revision`; editarlas él mismo sin tocar código sigue
    pendiente.

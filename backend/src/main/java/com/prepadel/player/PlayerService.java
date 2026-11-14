@@ -30,13 +30,15 @@ public class PlayerService {
 	private final PlayerRepository playerRepository;
 	private final PainEntryRepository painRepository;
 	private final BodyZoneRepository zoneRepository;
+	private final Clubs clubs;
 	private final Clock clock;
 
 	public PlayerService(PlayerRepository playerRepository, PainEntryRepository painRepository,
-			BodyZoneRepository zoneRepository, Clock clock) {
+			BodyZoneRepository zoneRepository, Clubs clubs, Clock clock) {
 		this.playerRepository = playerRepository;
 		this.painRepository = painRepository;
 		this.zoneRepository = zoneRepository;
+		this.clubs = clubs;
 		this.clock = clock;
 	}
 
@@ -53,7 +55,7 @@ public class PlayerService {
 		Instant now = clock.instant();
 		String token = Tokens.newToken();
 		Player player = playerRepository.save(new Player(UUID.randomUUID(), Tokens.hash(token), request.age(),
-				request.weeklyHours(), request.level(), CONSENT_VERSION, now));
+				request.weeklyHours(), request.level(), CONSENT_VERSION, clubs.recognize(request.club()), now));
 
 		request.discomfort().forEach((zone, score) -> painRepository
 				.save(new PainEntry(UUID.randomUUID(), player.getId(), zone, score, PainContext.ONBOARDING, now)));

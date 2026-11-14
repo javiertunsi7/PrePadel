@@ -1,11 +1,32 @@
 import { describe, expect, it, vi } from 'vitest';
-import { content, fakeApi, playerState, registeredStore } from '../test/fixtures';
+import { answers, content, fakeApi, playerState, registeredStore } from '../test/fixtures';
 import { ApiError, NetworkError, type Api } from './api';
 import { AppStore } from './store';
 
 const noNetwork = async (): Promise<never> => {
   throw new NetworkError();
 };
+
+describe('enlace de club', () => {
+  it('el club viaja con el cuestionario y después se olvida', async () => {
+    localStorage.setItem('prepadel.club', JSON.stringify('padel-elche'));
+    const api = fakeApi();
+
+    await new AppStore(api).register(answers);
+
+    expect(api.register).toHaveBeenCalledExactlyOnceWith({ ...answers, club: 'padel-elche' });
+    expect(localStorage.getItem('prepadel.club')).toBeNull();
+  });
+
+  it('si el alta falla, el club sigue guardado para el siguiente intento', async () => {
+    localStorage.setItem('prepadel.club', JSON.stringify('padel-elche'));
+    const store = new AppStore(fakeApi({ register: vi.fn(noNetwork) }));
+
+    await expect(store.register(answers)).rejects.toThrow(NetworkError);
+
+    expect(localStorage.getItem('prepadel.club')).toBe('"padel-elche"');
+  });
+});
 
 describe('sin cobertura', () => {
   it('la rutina terminada se ve al instante y queda en cola en el móvil', async () => {

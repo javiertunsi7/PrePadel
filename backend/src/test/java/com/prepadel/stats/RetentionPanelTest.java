@@ -10,6 +10,7 @@ import java.util.UUID;
 
 import com.jayway.jsonpath.JsonPath;
 import com.prepadel.stats.RetentionStats.AbandonedExercise;
+import com.prepadel.stats.RetentionStats.ClubRetention;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -92,6 +93,30 @@ class RetentionPanelTest {
 	}
 
 	@Test
+	void splitsTheSecondWeekReturnByClubAndListsConfiguredClubsWithoutPlayers() {
+		RetentionStats before = statsService.stats();
+		Instant now = Instant.now();
+
+		UUID cameBack = player(now.minus(Duration.ofDays(20)), "club-de-prueba");
+		completion(cameBack, now.minus(Duration.ofDays(12))); // día 8 desde el alta
+		player(now.minus(Duration.ofDays(20)), "club-de-prueba"); // no vuelve
+		UUID noClub = player(now.minus(Duration.ofDays(3)), null);
+		completion(noClub, now.minus(Duration.ofDays(1)));
+
+		RetentionStats after = statsService.stats();
+
+		ClubRetention club = club(after, "club-de-prueba");
+		assertThat(club.players() - club(before, "club-de-prueba").players()).isEqualTo(2);
+		assertThat(club.cohort() - club(before, "club-de-prueba").cohort()).isEqualTo(2);
+		assertThat(club.retained() - club(before, "club-de-prueba").retained()).isEqualTo(1);
+		assertThat(club.retentionPercent()).isBetween(0, 100);
+		assertThat(club(after, null).active7d() - club(before, null).active7d()).isEqualTo(1);
+		assertThat(club(after, "club-vacio")).isEqualTo(new ClubRetention("club-vacio", 0, 0, 0, 0, null));
+		assertThat(after.clubs()).extracting(ClubRetention::club).containsSequence("club-de-prueba", "club-vacio")
+			.last().isNull(); // los que llegaron sin enlace, al final
+	}
+
+	@Test
 	void leavingARoutineIsRecordedOnceAndOnlyForExercisesOfThatRoutine() throws Exception {
 		String body = mvc.perform(post("/api/players").contentType(MediaType.APPLICATION_JSON).content("""
 				{"age": 47, "weeklyHours": 4, "level": "INTERMEDIATE",
@@ -134,11 +159,13 @@ class RetentionPanelTest {
 			.andExpect(status().isOk())
 			.andExpect(header().string(HttpHeaders.CACHE_CONTROL, "no-store"))
 			.andExpect(jsonPath("$.players").isNumber())
-			.andExpect(jsonPath("$.abandonedExercises").isArray());
+			.andExpect(jsonPath("$.abandonedExercises").isArray())
+			.andExpect(jsonPath("$.clubs[0].club").value("club-de-prueba"));
 		mvc.perform(get("/api/admin/panel").header(HttpHeaders.AUTHORIZATION, basic("clave-de-prueba")))
 			.andExpect(status().isOk())
 			.andExpect(content().contentTypeCompatibleWith(MediaType.TEXT_HTML))
-			.andExpect(content().string(containsString("Ejercicios donde más se abandona")));
+			.andExpect(content().string(containsString("Ejercicios donde más se abandona")))
+			.andExpect(content().string(containsString("<td>club-vacio</td>")));
 	}
 
 	private static String basic(String password) {
@@ -146,12 +173,23 @@ class RetentionPanelTest {
 	}
 
 	private UUID player(Instant createdAt) {
+		return player(createdAt, null);
+	}
+
+	private UUID player(Instant createdAt, String club) {
 		UUID id = UUID.randomUUID();
 		jdbc.update("""
-				insert into player (id, token_hash, age, weekly_hours, skill_level, consent_version, consent_at, created_at)
-				values (?, ?, 45, 3, 'INTERMEDIATE', 'test', ?, ?)
-				""", id, id.toString(), at(createdAt), at(createdAt));
+				insert into player (id, token_hash, age, weekly_hours, skill_level, consent_version, consent_at, created_at,
+				                    club_code)
+				values (?, ?, 45, 3, 'INTERMEDIATE', 'test', ?, ?, ?)
+				""", id, id.toString(), at(createdAt), at(createdAt), club);
 		return id;
+	}
+
+	/** La fila de ese club (null: sin club), o una vacía si todavía no tiene jugadores. */
+	private static ClubRetention club(RetentionStats stats, String club) {
+		return stats.clubs().stream().filter(row -> java.util.Objects.equals(row.club(), club)).findFirst()
+			.orElse(new ClubRetention(club, 0, 0, 0, 0, null));
 	}
 
 	private void completion(UUID playerId, Instant when) {

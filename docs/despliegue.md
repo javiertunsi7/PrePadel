@@ -18,6 +18,7 @@ La imagen se configura con tres variables de entorno. Si falta alguna, la app no
 | `DATABASE_PASSWORD` | la que dé el alojamiento |
 | `PREPADEL_ADMIN_PASSWORD` | opcional: contraseña larga y aleatoria para el panel de retención (`/api/admin/panel`; el usuario da igual). Sin ella el panel no existe |
 | `PREPADEL_REVIEW_PASSWORD` | opcional: contraseña para la pantalla `/revision`, donde el fisio aprueba el contenido. Distinta de la del panel: es la que le das a él. Sin ella la revisión no existe |
+| `PREPADEL_CLUBS` | opcional: códigos de los clubes que reparten la app, separados por comas (`padel-elche,club-norte`: minúsculas, cifras y guiones). Cada club recibe su enlace, `https://tu-dominio/?club=padel-elche`, y el panel separa la retención por club. Un código que no esté aquí se ignora |
 | `PREPADEL_PUSH_PUBLIC_KEY`, `PREPADEL_PUSH_PRIVATE_KEY` | opcionales: claves del aviso del partido con la app cerrada. Se generan **una sola vez** con `cd backend && ./mvnw -q compile && java -cp target/classes com.prepadel.reminder.VapidKeyGenerator`. No se cambian después: cambiarlas deja sin aviso a quien ya se suscribió. La privada es secreta |
 | `PREPADEL_PUSH_SUBJECT` | con las dos anteriores: tu contacto, `mailto:tu-correo` o `https://tu-dominio`. Lo ven Google, Apple y Mozilla si hay un problema con los envíos |
 
@@ -92,6 +93,11 @@ Las tres variables de entorno hacen falta igual.
       repetirla en modo avión.
 - [ ] Decidido cómo se presenta el piloto mientras el contenido siga en borrador (la app ya
       lo avisa en Perfil y en la galería de ejercicios).
+- [ ] Cada club tiene su código en `PREPADEL_CLUBS` y su enlace `https://tu-dominio/?club=código`
+      (el QR del cartel se hace con cualquier generador a partir de ese enlace). El panel
+      enseña cada club configurado aunque aún tenga 0 jugadores: si uno no sale, falta en la
+      variable. En iPhone, la app instalada en la pantalla de inicio no comparte datos con
+      Safari: si alguien la instala antes de crear su plan, su club no se cuenta.
 
 Sigue pendiente, y conviene antes de abrirla a más gente: un límite de altas por minuto en
 `POST /api/players` y la cuenta recuperable. Está en

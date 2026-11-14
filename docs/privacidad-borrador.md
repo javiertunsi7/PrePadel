@@ -24,6 +24,7 @@ huella de esa clave, con la que no se puede reconstruir.
 | Programa que sigues y rutinas que terminas, con su fecha | Llevar tu progreso |
 | Rutinas que dejas a medias con el botón "Salir" y en qué ejercicio | Saber qué ejercicios hay que mejorar |
 | Fecha y versión del consentimiento que aceptaste | Poder demostrar que lo diste |
+| El club cuyo enlace usaste para abrir la app, solo si llegaste así | Contar cuántos jugadores de cada club usan la app |
 | Hora de tu próximo partido y la dirección de notificaciones de tu móvil, solo si aceptas los avisos | Avisarte 30 minutos antes aunque tengas la app cerrada |
 
 En tu móvil, y solo ahí, se guarda además si quieres la voz activada.
@@ -44,7 +45,8 @@ hora). Se mantiene en la memoria del servidor como mucho una hora y no se guarda
 datos. [El proveedor de alojamiento puede anotarla en sus registros técnicos durante X días.]
 
 No usamos cookies, publicidad ni herramientas de analítica de terceros. Las estadísticas de uso
-son totales calculados en nuestro propio servidor; no permiten identificarte.
+son totales calculados en nuestro propio servidor; no permiten identificarte. Si llegaste con el
+enlace de tu club, esos totales se separan también por club; el club no recibe ningún dato tuyo.
 
 ## Con qué base legal
 
@@ -116,4 +118,6 @@ PrePádel no es un producto sanitario ni sustituye a un profesional. [Enlazar al
 5. Revisar si el texto de consentimiento de la app debe mencionar el registro de rutinas
    abandonadas. Si cambia, hay que subir la versión del consentimiento en `PlayerService`.
 6. Decidir el plazo de borrado por inactividad y la edad mínima.
+   Confirmar también que el club de origen cabe en el interés legítimo de las estadísticas
+   (hoy el cuestionario lo explica en una línea, sin casilla aparte).
 7. Firmar el contrato de encargado con el alojamiento y activar el cifrado en reposo.

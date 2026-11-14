@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useSyncExternalStore, type ReactNode } from 'react';
 import { ApiError, type Api } from './api';
+import { forgetClub, pendingClub } from './club';
 import { load, remove, save } from './storage';
 import { applyOptimistic, newId, toRequest, type Mutation } from './sync';
 import type { Content, OnboardingAnswers, PainContext, PlayerState, PushTarget } from './types';
@@ -90,9 +91,14 @@ export class AppStore {
     });
   }
 
-  /** Cuestionario inicial. Necesita conexión; si falla, lanza el error para mostrarlo. */
+  /**
+   * Cuestionario inicial. Necesita conexión; si falla, lanza el error para mostrarlo.
+   * Si la app se abrió con el enlace de un club, el club viaja con las respuestas.
+   */
   async register(answers: OnboardingAnswers): Promise<void> {
-    const { token, state } = await this.api.register(answers);
+    const club = pendingClub();
+    const { token, state } = await this.api.register(club === null ? answers : { ...answers, club });
+    forgetClub();
     this.set({ token, me: state, outbox: [], offline: false });
   }
 

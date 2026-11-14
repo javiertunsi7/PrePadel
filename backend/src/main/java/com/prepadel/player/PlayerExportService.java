@@ -24,8 +24,9 @@ public class PlayerExportService {
 			List<Completion> completedRoutines, List<Abandonment> abandonedRoutines, Match nextMatch) {
 	}
 
-	public record Profile(int age, int weeklyHours, String level, String consentVersion, Instant consentAt,
-			Instant createdAt) {
+	/** @param club código del club con cuyo enlace llegó, o null */
+	public record Profile(int age, int weeklyHours, String level, String club, String consentVersion,
+			Instant consentAt, Instant createdAt) {
 	}
 
 	public record Pain(String zone, int score, String context, Instant recordedAt) {
@@ -55,10 +56,10 @@ public class PlayerExportService {
 	@Transactional(readOnly = true)
 	public Export export(UUID playerId) {
 		Profile profile = jdbc.queryForObject("""
-				select age, weekly_hours, skill_level, consent_version, consent_at, created_at
+				select age, weekly_hours, skill_level, club_code, consent_version, consent_at, created_at
 				from player where id = ?
 				""", (row, index) -> new Profile(row.getInt(1), row.getInt(2), row.getString(3), row.getString(4),
-				instant(row, 5), instant(row, 6)), playerId);
+				row.getString(5), instant(row, 6), instant(row, 7)), playerId);
 		List<Pain> pain = jdbc.query("""
 				select zone_code, score, context, recorded_at from pain_entry
 				where player_id = ? order by recorded_at

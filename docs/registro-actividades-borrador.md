@@ -26,13 +26,13 @@
 
 | | |
 |---|---|
-| **Finalidad** | Saber cuántos jugadores vuelven y en qué ejercicio se abandonan las rutinas, para mejorar el contenido |
+| **Finalidad** | Saber cuántos jugadores vuelven, desde qué club llegan y en qué ejercicio se abandonan las rutinas, para mejorar el contenido y medir el piloto con clubes |
 | **Base legal** | Interés legítimo (art. 6.1.f) [confirmar] |
 | **Interesados** | Los mismos jugadores |
-| **Datos** | Rutina y ejercicio en el que el jugador pulsa "Salir", con fecha, ligados a su identificador anónimo. El panel solo muestra totales |
-| **Destinatarios** | Proveedor de alojamiento. Ningún servicio de analítica externo |
+| **Datos** | Rutina y ejercicio en el que el jugador pulsa "Salir", con fecha, ligados a su identificador anónimo. Club cuyo enlace usó para llegar (código de `prepadel.clubs`), si llegó así. El panel solo muestra totales, también por club |
+| **Destinatarios** | Proveedor de alojamiento. Ningún servicio de analítica externo. Los clubes no reciben datos |
 | **Conservación** | La misma que la cuenta: se borra con ella |
-| **Dónde está** | Tabla `routine_abandonment`; panel en `/api/admin/panel`, protegido con contraseña |
+| **Dónde está** | Tabla `routine_abandonment` y columna `player.club_code`; panel en `/api/admin/panel`, protegido con contraseña |
 
 ## 3. Aviso del partido con la app cerrada
 
