@@ -48,8 +48,8 @@ Dentro de una tarea:
 ## Reglas que no se rompen
 
 - **Rutinas como datos.** Ejercicios, duraciones y progresiones viven en tablas, no en código.
-  El contenido se cambia con una migración nueva (`V8__...sql`). Las ya existentes (`V1` a
-  `V7`) no se editan: Flyway lo comprueba.
+  El contenido se cambia con una migración nueva (`V9__...sql`). Las ya existentes (`V1` a
+  `V8`) no se editan: Flyway lo comprueba.
 - **Offline first.** Todo lo que el jugador hace debe funcionar sin cobertura: pasa por la
   cola de `frontend/src/lib/store.tsx` y `sync.ts`.
 - **Manos libres.** Voz, pitidos, cuenta atrás gigante, letra y botones grandes.
@@ -90,7 +90,7 @@ backend/src/main/java/com/prepadel/
 backend/src/main/resources/db/migration/   V1 esquema, V2 contenido inicial,
                                            V3 rutinas abandonadas, V4 aviso del partido,
                                            V5 revisión del fisio, V6 partido semanal,
-                                           V7 varios partidos por jugador
+                                           V8 varios partidos por jugador
 
 frontend/src/
   App.tsx         rutas: / , /programas[/:slug], /dolor, /perfil[/ejercicios], /rutina/:slug, /bienvenida,

@@ -22,7 +22,7 @@ export interface Match {
   remote: boolean;
 }
 
-/** El partido de cuando solo cabía uno. El servidor lo guarda con este mismo id (migración V7). */
+/** El partido de cuando solo cabía uno. El servidor lo guarda con este mismo id (migración V8). */
 export const LEGACY_MATCH_ID = '00000000-0000-0000-0000-000000000000';
 
 export interface AppState {

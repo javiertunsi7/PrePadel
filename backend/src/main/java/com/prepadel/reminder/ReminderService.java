@@ -25,7 +25,7 @@ public class ReminderService {
 	static final int MAX_MATCHES = 4;
 
 	/**
-	 * El partido de cuando solo cabía uno por jugador. La migración V7 le dio este id, la app
+	 * El partido de cuando solo cabía uno por jugador. La migración V8 le dio este id, la app
 	 * lo conoce igual al actualizarse y es el que usa la ruta antigua (POST /api/me/reminder).
 	 */
 	static final UUID LEGACY_MATCH = new UUID(0, 0);

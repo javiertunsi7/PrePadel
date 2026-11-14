@@ -19,7 +19,7 @@ import org.springframework.test.context.ActiveProfiles;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * La migración V7 (varios partidos por jugador) conserva el aviso que ya estuviera
+ * La migración V8 (varios partidos por jugador) conserva el aviso que ya estuviera
  * guardado, con el id que la app le da al actualizarse. Se prueba en un esquema
  * aparte de la misma base de datos que el resto de tests: H2, y en CI también PostgreSQL.
  */
@@ -27,7 +27,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @ActiveProfiles("test")
 class SeveralMatchesMigrationTest {
 
-	private static final String SCHEMA = "\"migracion_v7\"";
+	private static final String SCHEMA = "\"migracion_v8\"";
 
 	private static final String ENDPOINT = "https://fcm.googleapis.com/fcm/send/movil";
 
@@ -48,7 +48,8 @@ class SeveralMatchesMigrationTest {
 	}
 
 	@Test
-	void theMatchSavedBeforeV7IsKeptAndThePlayerCanAddMore() {
+	void theMatchSavedBeforeV8IsKeptAndThePlayerCanAddMore() {
+		// V6 es la del partido semanal: la base tal como quedaba con un solo partido por jugador.
 		migrateTo("6");
 		UUID player = UUID.randomUUID();
 		OffsetDateTime now = OffsetDateTime.parse("2026-11-14T10:00:00Z");
