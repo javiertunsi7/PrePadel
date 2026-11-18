@@ -2,13 +2,15 @@ import { Link } from 'react-router';
 import { PROGRAM_PAUSED } from '../lib/copy';
 import { RISK_LABEL } from '../lib/zones';
 import type { PainAlert, RiskLevel } from '../lib/types';
-import { Mascot } from './Mascot';
+import { WarningIcon } from './Icons';
 
 /** Aviso de "para y consulta a un profesional". */
 export function AlertCard({ alert }: { alert: PainAlert }) {
   return (
     <div className="alert" role="alert">
-      <Mascot mood="worried" size={56} />
+      <span className="alert__icon" aria-hidden="true">
+        <WarningIcon />
+      </span>
       <p>{alert.message}</p>
     </div>
   );

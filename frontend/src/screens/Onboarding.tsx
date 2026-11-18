@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Navigate, useNavigate } from 'react-router';
 import { RiskChip } from '../components/Bits';
 import { BackIcon, PainIcon, ProgramsIcon, TodayIcon, ZoneIcon } from '../components/Icons';
-import { Mascot } from '../components/Mascot';
+import { Ball } from '../components/Ball';
 import { PainScale } from '../components/PainScale';
 import { ApiError, TooManyRequestsError } from '../lib/api';
 import { pendingClub } from '../lib/club';
@@ -76,8 +76,10 @@ export function Onboarding() {
   if (step === 'welcome') {
     return (
       <main className="screen onboarding onboarding--welcome">
-        <Mascot mood="happy" size={150} />
-        <h1>Juega al pádel sin que te pase factura</h1>
+        <Ball size={110} moving />
+        <h1>
+          Juega al pádel sin que te pase <span className="accent">factura</span>
+        </h1>
         <p className="lead">
           Rutinas de 10 minutos para cuidar codo, hombro y rodilla. Hechas para jugadores amateur.
         </p>
@@ -115,7 +117,7 @@ export function Onboarding() {
     return (
       <main className="screen onboarding">
         <div className="onboarding__hero">
-          <Mascot mood="cheer" size={110} />
+          <Ball size={56} />
           <h1>Tu punto de partida</h1>
           <p className="lead">Orientativo, según lo que nos has contado. No es un diagnóstico.</p>
         </div>

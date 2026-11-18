@@ -1,12 +1,12 @@
-// Genera los iconos PNG de la app (public/icons) sin dependencias: dibuja a
-// Bola, la pelota de pádel, píxel a píxel. Ejecutar con `npm run icons` si se
-// cambia el dibujo; los PNG generados se guardan en el repositorio.
+// Genera los iconos PNG de la app (public/icons) sin dependencias: dibuja la
+// bola de PrePádel (pelota lima con costuras azul noche) píxel a píxel.
+// Ejecutar con `npm run icons` si se cambia el dibujo; los PNG generados se
+// guardan en el repositorio.
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { deflateSync } from 'node:zlib';
 
-const NAVY = [34, 48, 74];
-const LIME = [216, 242, 74];
-const WHITE = [255, 255, 255];
+const NAVY = [11, 31, 58];
+const LIME = [215, 255, 58];
 
 /**
  * Color del icono en el punto (u, v), ambos entre 0 y 1; null es transparente.
@@ -26,17 +26,9 @@ function shade(u, v, { ball, corner }) {
   if (Math.hypot(x, y) > 1) {
     return NAVY;
   }
-  const inEye = (cx) => ((x - cx) / 0.11) ** 2 + ((y + 0.04) / 0.16) ** 2 < 1;
-  if (inEye(-0.3) || inEye(0.3)) {
-    return NAVY;
-  }
-  const smile = Math.hypot(x, y - 0.16);
-  if (Math.abs(smile - 0.3) < 0.048 && y > 0.29) {
-    return NAVY;
-  }
-  const onSeam = (cx) => Math.abs(Math.hypot(x - cx, y) - 0.92) < 0.052;
+  const onSeam = (cx) => Math.abs(Math.hypot(x - cx, y) - 0.92) < 0.065;
   if (onSeam(-1.55) || onSeam(1.55)) {
-    return WHITE;
+    return NAVY;
   }
   return LIME;
 }

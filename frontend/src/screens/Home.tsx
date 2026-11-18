@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { AlertCard, ProgramPaused, SessionDots } from '../components/Bits';
-import { CheckIcon, ChevronIcon, ClockIcon, PainIcon, ZoneIcon } from '../components/Icons';
-import { Mascot } from '../components/Mascot';
+import { CheckIcon, ChevronIcon, ClockIcon, PainIcon, PlayIcon, ZoneIcon } from '../components/Icons';
 import { ProgramEnd, ProgramEndActions } from '../components/ProgramEnd';
 import { completedToday, formatMinutes, formatTime, pausingAlert, sameDay, streakDays } from '../lib/derive';
 import { useNow } from '../lib/hooks';
@@ -24,24 +23,22 @@ export function Home() {
   const streak = streakDays(me.recentCompletions, now);
   const warmup = content.routines.find((routine) => routine.kind === 'WARMUP');
   const recovery = content.routines.find((routine) => routine.kind === 'RECOVERY');
-  const mood = me.alerts.length > 0 ? 'worried' : doneToday.size > 0 ? 'cheer' : 'happy';
 
   return (
     <>
       <header className="hello">
-        <Mascot mood={mood} size={84} />
-        <div className="hello__text">
+        <div className="hello__top">
           <span className="eyebrow">{dateLabel(now)}</span>
-          <h1>{greeting(now)}</h1>
+          {streak >= 2 && <span className="chip chip--sun">{streak} días seguidos</span>}
         </div>
-        {streak >= 2 && <span className="chip chip--sun">{streak} días seguidos</span>}
+        <h1>{greeting(now)}</h1>
       </header>
 
       {me.alerts.map((alert) => (
         <AlertCard key={`${alert.zone}-${alert.kind}`} alert={alert} />
       ))}
 
-      <MatchCard now={now} />
+      <MatchCard now={now} warmup={warmup} warmupDone={warmup !== undefined && doneToday.has(warmup.slug)} />
 
       <h2 className="section-title">Tu día de pádel</h2>
       {warmup && <RoutineCard routine={warmup} eyebrow="Antes del partido" done={doneToday.has(warmup.slug)} />}
@@ -157,8 +154,11 @@ function ProgramToday({ content, me, doneToday }: { content: Content; me: Player
   );
 }
 
-/** Recordatorio ligado al partido: aviso 30 minutos antes de cada partido que marca el jugador. */
-function MatchCard({ now }: { now: Date }) {
+/**
+ * Recordatorio ligado al partido: aviso 30 minutos antes de cada partido que marca el jugador.
+ * Si se juega hoy y aún no ha calentado, el calentamiento es la acción principal de la tarjeta.
+ */
+function MatchCard({ now, warmup, warmupDone }: { now: Date; warmup?: Routine; warmupDone: boolean }) {
   const store = useStore();
   const { matches } = useAppState();
   const [adding, setAdding] = useState(false);
@@ -172,6 +172,7 @@ function MatchCard({ now }: { now: Date }) {
   const upcoming = matches.filter((match) => matchMoment(new Date(match.at), now) === 'before');
   const full = matches.length >= MAX_MATCHES;
   const title = upcoming.length === 1 ? 'Tu partido' : 'Tus partidos';
+  const playsToday = upcoming.some((match) => sameDay(new Date(match.at), now));
 
   return (
     <>
@@ -223,6 +224,11 @@ function MatchCard({ now }: { now: Date }) {
               );
             })}
           </ul>
+          {playsToday && warmup && !warmupDone && (
+            <Link to={`/rutina/${warmup.slug}`} className="btn btn--primary btn--block">
+              <PlayIcon /> Calentar · {formatMinutes(warmup.totalSeconds)}
+            </Link>
+          )}
           {full ? (
             <span className="muted small">Como mucho {MAX_MATCHES} partidos: quita uno para añadir otro.</span>
           ) : (

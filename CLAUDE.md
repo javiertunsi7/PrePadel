@@ -102,10 +102,11 @@ frontend/src/
                   voice, reminder, derive, types, copy (textos), zones, club (enlace de club),
                   summary (cierre del programa: sesiones y dolor de la zona al empezar y ahora)
   screens/        una pantalla por ruta
-  components/     Mascot, Icons, PainScale, Ring, TabBar, ExerciseSheet, Bits, ProgramEnd
+  components/     Ball (la bola de la marca), Icons, PainScale, Ring, TabBar, ExerciseSheet, Bits, ProgramEnd
   illustrations/  catalog.ts (posturas por slug de ejercicio), engine.ts (animación),
                   DevSheet en /dev/ilustraciones (solo en desarrollo)
-  styles.css      todos los estilos
+  styles.css      todos los estilos (estilo "Pista nocturna": azul noche, lima neón,
+                  Barlow Condensed y Barlow; las ilustraciones van sobre tarjeta clara)
 ```
 
 Despliegue: `Dockerfile`, `docker-compose.yml` (puerto 8090), `docs/despliegue.md`.

@@ -1,6 +1,6 @@
 import { lazy, Suspense } from 'react';
 import { Navigate, Outlet, Route, Routes, useLocation } from 'react-router';
-import { Mascot } from './components/Mascot';
+import { Ball } from './components/Ball';
 import { TabBar } from './components/TabBar';
 import { useMatchReminder, useScrollToTop } from './lib/hooks';
 import { useAppState, useStore } from './lib/store';
@@ -87,7 +87,7 @@ function LoadingContent() {
   const { offline } = useAppState();
   return (
     <main className="screen screen--center">
-      <Mascot mood="calm" size={120} />
+      <Ball size={120} />
       <h1>Preparando tus rutinas…</h1>
       {offline && (
         <>

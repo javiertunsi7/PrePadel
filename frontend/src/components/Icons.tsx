@@ -118,11 +118,19 @@ export const ClockIcon = ({ size }: IconProps) => (
   </Icon>
 );
 
-/** Articulación de cada zona sobre un círculo de su color. */
+export const WarningIcon = ({ size }: IconProps) => (
+  <Icon size={size}>
+    <path d="M12 4 3 19.5h18z" />
+    <path d="M12 10v4.2" />
+    <circle cx="12" cy="17" r="0.9" fill="currentColor" />
+  </Icon>
+);
+
+/** Articulación de cada zona, con la articulación marcada en el color de la zona. */
 export function ZoneIcon({ zone, size = 48 }: { zone: string | null; size?: number }) {
   const look = zoneLook(zone);
   return (
-    <span className="zone-icon" style={{ width: size, height: size, background: look.soft }} aria-hidden="true">
+    <span className="zone-icon" style={{ width: size, height: size }} aria-hidden="true">
       <svg
         width={size * 0.62}
         height={size * 0.62}
@@ -133,19 +141,19 @@ export function ZoneIcon({ zone, size = 48 }: { zone: string | null; size?: numb
         strokeLinecap="round"
         strokeLinejoin="round"
       >
-        {jointGlyph(zone, look.strong)}
+        {jointGlyph(zone, look.accent)}
       </svg>
     </span>
   );
 }
 
-function jointGlyph(zone: string | null, strong: string): ReactNode {
+function jointGlyph(zone: string | null, accent: string): ReactNode {
   switch (zone) {
     case 'ELBOW':
       return (
         <>
           <path d="M7 5l7 15 13-4" />
-          <circle cx="14" cy="20" r="3.6" fill={strong} stroke="none" />
+          <circle cx="14" cy="20" r="3.6" fill={accent} stroke="none" />
         </>
       );
     case 'SHOULDER':
@@ -153,14 +161,14 @@ function jointGlyph(zone: string | null, strong: string): ReactNode {
         <>
           <path d="M4 23c0-9 6-15 15-15" />
           <path d="M19 8l7 17" />
-          <circle cx="19" cy="8" r="3.6" fill={strong} stroke="none" />
+          <circle cx="19" cy="8" r="3.6" fill={accent} stroke="none" />
         </>
       );
     case 'KNEE':
       return (
         <>
           <path d="M11 3l8 12-7 14" />
-          <circle cx="19" cy="15" r="3.6" fill={strong} stroke="none" />
+          <circle cx="19" cy="15" r="3.6" fill={accent} stroke="none" />
         </>
       );
     default:
@@ -168,7 +176,7 @@ function jointGlyph(zone: string | null, strong: string): ReactNode {
       return (
         <>
           <circle cx="16" cy="16" r="11" />
-          <path d="M8.5 9c3.5 3.5 3.5 10.5 0 14M23.5 9c-3.5 3.5-3.5 10.5 0 14" stroke={strong} strokeWidth="2.6" />
+          <path d="M8.5 9c3.5 3.5 3.5 10.5 0 14M23.5 9c-3.5 3.5-3.5 10.5 0 14" stroke={accent} strokeWidth="2.6" />
         </>
       );
   }

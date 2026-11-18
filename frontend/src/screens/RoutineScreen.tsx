@@ -13,7 +13,7 @@ import {
   SoundIcon,
   ZoneIcon,
 } from '../components/Icons';
-import { Mascot } from '../components/Mascot';
+import { Ball } from '../components/Ball';
 import { PainScale } from '../components/PainScale';
 import { Ring } from '../components/Ring';
 import { DISCLAIMER, KIND_LABEL, PAUSED_ROUTINE_QUESTION } from '../lib/copy';
@@ -377,7 +377,7 @@ function Done({ routine }: { routine: Routine }) {
 
   return (
     <main className="screen screen--center done" style={zoneVars(routine.zone)}>
-      <Mascot mood="cheer" size={150} />
+      <Ball size={110} moving />
       <h1>¡Rutina hecha!</h1>
       <p className="lead">
         {formatMinutes(routine.totalSeconds)} bien invertidos. Tu cuerpo te lo agradecerá en la pista.

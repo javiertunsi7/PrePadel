@@ -5,17 +5,24 @@ import type { RiskLevel, SkillLevel } from './types';
 // color propio usa el de las rutinas generales.
 
 interface ZoneLook {
+  /** Pastel y fuerte: pintan la figura de cada ejercicio, sobre tarjeta clara. */
   soft: string;
   strong: string;
+  /** Marca la zona en los iconos, sobre el fondo oscuro. */
+  accent: string;
 }
 
 const LOOKS: Record<string, ZoneLook> = {
-  ELBOW: { soft: 'var(--elbow)', strong: 'var(--elbow-strong)' },
-  SHOULDER: { soft: 'var(--shoulder)', strong: 'var(--shoulder-strong)' },
-  KNEE: { soft: 'var(--knee)', strong: 'var(--knee-strong)' },
+  ELBOW: { soft: 'var(--elbow)', strong: 'var(--elbow-strong)', accent: 'var(--elbow-accent)' },
+  SHOULDER: { soft: 'var(--shoulder)', strong: 'var(--shoulder-strong)', accent: 'var(--shoulder-accent)' },
+  KNEE: { soft: 'var(--knee)', strong: 'var(--knee-strong)', accent: 'var(--knee-accent)' },
 };
 
-const GENERAL: ZoneLook = { soft: 'var(--general)', strong: 'var(--general-strong)' };
+const GENERAL: ZoneLook = {
+  soft: 'var(--general)',
+  strong: 'var(--general-strong)',
+  accent: 'var(--general-accent)',
+};
 
 export function zoneLook(code: string | null | undefined): ZoneLook {
   return (code ? LOOKS[code] : undefined) ?? GENERAL;
